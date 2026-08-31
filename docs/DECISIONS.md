@@ -57,3 +57,56 @@ I put it in `personal`.
 default stance is a one-line edit with a test that will fail loudly.
 
 ---
+
+## D3 — The privacy report decoder supports both candidate schemas
+
+**Decided:** Built the App Privacy Report decoder to detect and handle *both*
+schemas research turned up, rather than waiting for your real export to pick one.
+
+**Why:** The alternative was leaving Phase 4 entirely blocked for eight hours.
+Supporting both cost about thirty extra lines, and the decoder reports which
+schema it detected, so a real export will immediately tell us which is right.
+
+The design rule that matters more than the schema question: an unrecognised
+shape **fails loudly** rather than decoding to an empty result. This data cannot
+be re-fetched — the window is seven days and switching the report off in
+Settings erases it — so a silent empty import would be much worse than a visible
+error.
+
+**Confidence:** high on the approach; **low on whether either schema is
+correct.** Apple documents the report's contents and never documents the export
+format. The fixtures are hand-authored from research descriptions, not captured
+from a phone, so the tests pin the decoder's *behaviour* without being evidence
+about iOS 26's actual output.
+
+**What I need from you:** export a real App Privacy Report and drop it somewhere
+local (not in the repo — it is personal data and the repo is public). Ten minutes
+against a real file settles this.
+
+**Reversal:** `PrivacyReportDecoder` is one file with no callers depending on the
+schema enum. Deleting the losing branch once we know is trivial.
+
+---
+
+## D4 — Overlapping imports keep the larger hit count, not the sum
+
+**Decided:** When the same app-and-domain pair appears in two imports,
+`PrivacyReportHistory` keeps `max(hits)` rather than adding them.
+
+**Why:** `hits` counts within a single seven-day window, and windows overlap
+whenever the user imports more than once a week. Summing would inflate the
+numbers. Taking the maximum under-reports a genuinely busier later window.
+
+Under-reporting is the right direction to err in, because these numbers are used
+to make claims about *other people's* apps. Overstating "this app contacted a
+tracker 52 times" when it was 42 is a worse failure than understating it.
+
+**Confidence:** medium. A more accurate approach would track per-window records
+and sum only non-overlapping ones, which is a real improvement if the numbers
+ever matter precisely.
+
+**Reversal:** One `Swift.max` in `PrivacyReportHistory.merge`, with a test
+(`hitsDoNotAccumulate`) that pins the current behaviour and will fail loudly if
+it changes.
+
+---
