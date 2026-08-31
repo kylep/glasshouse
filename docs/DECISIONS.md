@@ -110,3 +110,51 @@ ever matter precisely.
 it changes.
 
 ---
+
+## D5 — I wrote the sensor adapters directly instead of fanning out to agents
+
+**Decided:** Built the 19 live adapters myself rather than dispatching one
+implementer agent per ledger row, which is what the plan described.
+
+**Why:** All the verified Apple research was already in context from the six
+research agents that ran the day before — exact plist keys, measured simulator
+behaviour, entitlement tiers, and the specific traps (`AVCaptureDevice` returning
+an empty array, `CBManager.authorization` disagreeing with `state`).
+
+Dispatching implementers would have meant each one re-deriving facts already
+established, and — the real risk — some of them reaching for training-data recall
+instead of re-verifying. That is precisely the failure mode `apple-api-researcher`
+exists to prevent, and it would have been reintroduced by the fan-out itself.
+
+The harness is real and the agent definitions are good. The fan-out just was not
+the cheapest correct path on this particular day, with this particular context
+already loaded.
+
+**Confidence:** high for today. The calculus reverses for the next batch of
+sensors, when the research is no longer in context.
+
+**Reversal:** Nothing to undo. `.claude/agents/` is ready for the next batch, and
+an independent reviewer agent audited the adapters afterwards.
+
+---
+
+## D6 — Attribution history is stored with complete file protection
+
+**Decided:** `attribution-history.json` is written with
+`.completeFileProtection` rather than the project's default of
+complete-until-first-unlock.
+
+**Why:** It holds other people's app activity — which apps touched a camera or a
+microphone, and when — which the ledger classifies as `intimate`. Complete
+protection makes it unreadable while the device is locked. That normally costs
+background access, but this app only ever runs in the foreground, so it costs
+nothing here.
+
+**Confidence:** high. This is the strictest sensible option and it has no
+downside for the current design.
+
+**Reversal:** One options array in `AttributionStore.save()`. Note that if the
+app ever gains background behaviour, this becomes a real constraint rather than a
+free win.
+
+---
