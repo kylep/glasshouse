@@ -59,3 +59,6 @@ personal/
 
 # ── macOS ──────────────────────────────────────────────────────────────────
 .DS_Store
+
+# Generated from the capability ledger by scripts/bootstrap.sh
+App/Generated/

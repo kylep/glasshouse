@@ -37,8 +37,10 @@ targets:
         CURRENT_PROJECT_VERSION: "1"
         SWIFT_VERSION: "6.2"
         TARGETED_DEVICE_FAMILY: "1"
-        GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_UILaunchScreen_Generation: YES
-        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        # Info.plist is generated from the capability ledger by
+        # `scripts/bootstrap.sh`, so a sensor cannot ship without a declared
+        # purpose string. Do not switch this back to GENERATE_INFOPLIST_FILE.
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: App/Generated/Info.plist
         CODE_SIGN_STYLE: Automatic
         SWIFT_STRICT_CONCURRENCY: complete

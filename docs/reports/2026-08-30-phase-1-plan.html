@@ -1,0 +1,718 @@
+<title>Glasshouse Phase 1</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;1,400&display=swap">
+
+<style>
+:root{
+  --ground:#E9ECF0;
+  --surface:#FFFFFF;
+  --surface-2:#F4F6F8;
+  --ink:#161A21;
+  --ink-2:#5A6472;
+  --ink-3:#8892A0;
+  --rule:#D2D8E0;
+  --rule-strong:#B6BFCB;
+  --structure:#2D4A7C;
+  --ok:#1B6B45;
+  --ok-bg:#E3F0E9;
+  --gated:#96610A;
+  --gated-bg:#F6EEDC;
+  --no:#A32E1E;
+  --no-bg:#F8E7E3;
+  --shadow:0 1px 2px rgba(22,26,33,.06),0 8px 24px -12px rgba(22,26,33,.18);
+  --maxw:74ch;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#12161C;
+    --surface:#1A1F27;
+    --surface-2:#212832;
+    --ink:#E7EBF0;
+    --ink-2:#9AA5B4;
+    --ink-3:#6E7988;
+    --rule:#2C3542;
+    --rule-strong:#3D4756;
+    --structure:#8FB0E0;
+    --ok:#68C79A;
+    --ok-bg:#16302563;
+    --gated:#D9A648;
+    --gated-bg:#3325063d;
+    --no:#E8836F;
+    --no-bg:#3A1B1533;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#12161C;
+  --surface:#1A1F27;
+  --surface-2:#212832;
+  --ink:#E7EBF0;
+  --ink-2:#9AA5B4;
+  --ink-3:#6E7988;
+  --rule:#2C3542;
+  --rule-strong:#3D4756;
+  --structure:#8FB0E0;
+  --ok:#68C79A;
+  --ok-bg:#16302563;
+  --gated:#D9A648;
+  --gated-bg:#3325063d;
+  --no:#E8836F;
+  --no-bg:#3A1B1533;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -12px rgba(0,0,0,.6);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"IBM Plex Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:16.5px;
+  line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px 120px}
+
+/* ---- masthead ---- */
+.mast{padding:64px 0 40px;border-bottom:2px solid var(--ink);margin-bottom:0}
+.eyebrow{
+  font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:12px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--structure);font-weight:600;margin:0 0 18px;
+  display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;
+}
+.eyebrow span{color:var(--ink-3)}
+h1{
+  font-size:clamp(2.4rem,6vw,3.9rem);line-height:1.02;margin:0 0 22px;
+  font-weight:700;letter-spacing:-.028em;text-wrap:balance;
+}
+.thesis{
+  font-family:"IBM Plex Serif",Georgia,serif;
+  font-size:clamp(1.08rem,2.2vw,1.32rem);line-height:1.55;
+  color:var(--ink-2);max-width:62ch;margin:0 0 8px;
+}
+.thesis strong{color:var(--ink);font-weight:400;box-shadow:inset 0 -.5em 0 var(--gated-bg)}
+
+/* ---- sections with numbered rail ---- */
+section{
+  display:grid;grid-template-columns:78px minmax(0,1fr);
+  gap:0 28px;padding:52px 0;border-bottom:1px solid var(--rule);
+  align-items:start;
+}
+.rail{
+  font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;
+  letter-spacing:.08em;color:var(--ink-3);padding-top:9px;
+  position:sticky;top:20px;
+}
+.rail b{display:block;color:var(--structure);font-size:20px;letter-spacing:-.02em;font-weight:600;line-height:1.1}
+.body>*:first-child{margin-top:0}
+.body>*:last-child{margin-bottom:0}
+h2{font-size:1.72rem;line-height:1.18;margin:0 0 20px;font-weight:650;letter-spacing:-.02em;text-wrap:balance}
+h3{
+  font-size:.82rem;font-family:"IBM Plex Mono",monospace;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--structure);
+  margin:38px 0 12px;
+}
+h4{font-size:1.03rem;margin:26px 0 8px;font-weight:650;letter-spacing:-.01em}
+p{margin:0 0 16px;max-width:var(--maxw)}
+ul,ol{margin:0 0 16px;padding-left:22px;max-width:var(--maxw)}
+li{margin-bottom:9px}
+li::marker{color:var(--ink-3)}
+strong{font-weight:600}
+a{color:var(--structure);text-decoration-thickness:1px;text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--structure);outline-offset:3px;border-radius:2px}
+code{
+  font-family:"IBM Plex Mono",monospace;font-size:.855em;
+  background:var(--surface-2);border:1px solid var(--rule);
+  padding:.1em .34em;border-radius:3px;white-space:nowrap;
+}
+
+/* ---- chips ---- */
+.chip{
+  display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;
+  font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+  padding:2.5px 8px;border-radius:3px;white-space:nowrap;border:1px solid transparent;
+}
+.c-ok{color:var(--ok);background:var(--ok-bg);border-color:var(--ok)}
+.c-gated{color:var(--gated);background:var(--gated-bg);border-color:var(--gated)}
+.c-no{color:var(--no);background:var(--no-bg);border-color:var(--no)}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;margin:0 0 22px;border:1px solid var(--rule);border-radius:5px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.2px;min-width:600px}
+th{
+  text-align:left;font-family:"IBM Plex Mono",monospace;font-size:10.5px;
+  letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);font-weight:600;
+  padding:11px 14px;border-bottom:1px solid var(--rule-strong);background:var(--surface-2);
+  white-space:nowrap;vertical-align:bottom;
+}
+td{padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:top;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+td code{white-space:nowrap}
+.mono-col{font-family:"IBM Plex Mono",monospace;font-size:12.6px}
+
+/* ---- callouts ---- */
+.note{
+  border-left:3px solid var(--structure);background:var(--surface);
+  padding:16px 20px;margin:0 0 22px;border-radius:0 5px 5px 0;
+  box-shadow:var(--shadow);
+}
+.note.warn{border-left-color:var(--gated)}
+.note.stop{border-left-color:var(--no)}
+.note p:last-child{margin-bottom:0}
+.note .lbl{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+  letter-spacing:.11em;text-transform:uppercase;color:var(--structure);
+  display:block;margin-bottom:7px;
+}
+.note.warn .lbl{color:var(--gated)}
+.note.stop .lbl{color:var(--no)}
+
+/* ---- code blocks ---- */
+pre{
+  background:var(--surface);border:1px solid var(--rule);border-radius:5px;
+  padding:16px 18px;overflow-x:auto;margin:0 0 22px;
+  font-family:"IBM Plex Mono",monospace;font-size:12.9px;line-height:1.62;
+  color:var(--ink);
+}
+pre code{background:none;border:none;padding:0;font-size:inherit;white-space:pre}
+.cmt{color:var(--ink-3)}
+.kw{color:var(--structure);font-weight:500}
+
+/* ---- phase cards ---- */
+.phase{
+  background:var(--surface);border:1px solid var(--rule);border-radius:6px;
+  padding:20px 22px;margin:0 0 14px;box-shadow:var(--shadow);
+}
+.phase-h{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:baseline;margin-bottom:10px}
+.phase-n{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;
+  color:var(--surface);background:var(--structure);padding:2px 9px;border-radius:3px;
+  letter-spacing:.03em;
+}
+.phase-t{font-weight:650;font-size:1.06rem;letter-spacing:-.01em}
+.phase-meta{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);
+  letter-spacing:.05em;margin-left:auto;text-transform:uppercase;
+}
+.phase p{margin-bottom:10px;max-width:none}
+.phase ul{margin-bottom:10px;max-width:none}
+.exit{
+  border-top:1px dashed var(--rule-strong);margin-top:14px;padding-top:11px;
+  font-size:14px;color:var(--ink-2);
+}
+.exit b{
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ok);display:block;margin-bottom:4px;font-weight:600;
+}
+
+/* ---- agent grid ---- */
+.agents{display:grid;grid-template-columns:repeat(auto-fit,minmax(258px,1fr));gap:12px;margin:0 0 22px}
+.agent{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:16px 17px;box-shadow:var(--shadow)}
+.agent h5{
+  margin:0 0 3px;font-family:"IBM Plex Mono",monospace;font-size:13px;
+  font-weight:600;letter-spacing:-.01em;color:var(--ink);
+}
+.agent .m{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);margin-bottom:9px}
+.agent p{font-size:13.8px;margin:0;color:var(--ink-2);line-height:1.5;max-width:none}
+
+/* ---- decisions ---- */
+.dec{display:grid;grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:12px;margin:26px 0 0}
+.dec div{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--structure);border-radius:0 5px 5px 0;padding:13px 15px}
+.dec dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:5px}
+.dec dd{margin:0;font-weight:600;font-size:14.6px;line-height:1.4}
+.dec dd em{display:block;font-style:normal;font-weight:400;font-size:13px;color:var(--ink-2);margin-top:3px;line-height:1.45}
+
+details{border:1px solid var(--rule);border-radius:5px;background:var(--surface);padding:0 18px;margin:0 0 14px}
+summary{cursor:pointer;padding:13px 0;font-weight:600;font-size:14.5px;list-style-position:inside}
+details[open] summary{border-bottom:1px solid var(--rule);margin-bottom:14px}
+details>*:last-child{margin-bottom:16px}
+
+.tree{font-family:"IBM Plex Mono",monospace;font-size:12.7px;line-height:1.75}
+
+@media (max-width:720px){
+  section{grid-template-columns:1fr;gap:0}
+  .rail{position:static;padding-bottom:14px;display:flex;gap:12px;align-items:baseline}
+  .rail b{font-size:15px}
+  .phase-meta{margin-left:0;flex-basis:100%}
+  .wrap{padding:0 18px 80px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="eyebrow">Phase 1 &mdash; Build Plan <span>/</span> 2026-08-30 <span>/</span> Xcode 26.2 &middot; Swift 6.2.3 &middot; iOS 26.2 sim <span>/</span> shipping iOS 26.6.1</p>
+  <h1>Glasshouse</h1>
+  <p class="thesis">An iPhone app that reads every sensor it can legally reach, and shows you the readings &mdash; so the abstract claim &ldquo;your phone knows everything&rdquo; becomes <strong>a list of numbers you can scroll</strong>. Phase 1 builds the app and the agent harness that writes it. Phase 2, later, decides whether any of it is allowed to leave the device.</p>
+</header>
+
+<!-- ================= 1 ================= -->
+<section>
+  <div class="rail"><b>01</b>Decisions</div>
+  <div class="body">
+    <h2>What you locked in, and what it costs</h2>
+    <p>Four answers from you shape everything below. Two of them are load-bearing in ways worth stating plainly before the plan starts.</p>
+
+    <dl class="dec">
+      <div><dt>Signing</dt><dd>Personal team<em>Sideload to your own device. Door stays open to paid/TestFlight via a tracked doc.</em></dd></div>
+      <div><dt>Hardware</dt><dd>Simulator only<em>No physical device yet. Drives the entire test strategy.</em></dd></div>
+      <div><dt>Repo</dt><dd>Standalone<em><code>~/gh/glasshouse</code>, outside multi and multi-sandbox.</em></dd></div>
+      <div><dt>Attribution</dt><dd>Build it now<em>App Privacy Report import ships in Phase 1, not deferred.</em></dd></div>
+    </dl>
+
+    <h3>The two costs</h3>
+
+    <div class="note stop">
+      <span class="lbl">Cost 1 &mdash; the simulator hides every entitlement error</span>
+      <p>I verified this locally: <code>iPhoneSimulator.platform/Info.plist</code> sets <code>CODE_SIGNING_ALLOWED = NO</code>. Simulator builds are not signed, carry no provisioning profile, and have no entitlements to enforce. Every restricted framework &mdash; SensorKit, FamilyControls, CoreNFC, NetworkExtension &mdash; is present in the simulator SDK and links cleanly.</p>
+      <p>So the app will build and run perfectly while containing capabilities your free account can never sign. The failure moves from build time to first device deploy, all at once. <strong>The harness has to carry that constraint as data, because the compiler won't.</strong> That is what the Capability Ledger in §3 exists for.</p>
+    </div>
+
+    <div class="note stop">
+      <span class="lbl">Cost 2 &mdash; a free team is more capable than expected, and capped where it hurts</span>
+      <p>The pleasant surprise: <strong>HealthKit works on a free personal team</strong>, as do App Groups, Keychain Sharing, HomeKit, and — because <code>UIBackgroundModes</code> is an Info.plist array rather than a portal capability — <strong>all background modes</strong>, including background location and <code>bluetooth-central</code>. That is a genuinely invasive app on a $0 account.</p>
+      <p>The wall: no Push, no iCloud, no NFC, no Network Extensions, no App Attest, no Wi-Fi SSID, no Sign in with Apple. And the two hungriest sensor entitlements — <strong>SensorKit</strong> and <strong>Family Controls</strong> — need a paid account <em>plus</em> Apple approval, with SensorKit gated on an approved research study. Those are out of reach, permanently, for a personal project.</p>
+      <p>Operationally: profiles expire in <strong>7 days</strong>, 10 concurrent App IDs, 3 devices per platform. Plan for re-signing as routine, not incident.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2 ================= -->
+<section>
+  <div class="rail"><b>02</b>Reality</div>
+  <div class="body">
+    <h2>What &ldquo;invasive af&rdquo; actually buys you</h2>
+    <p>I ran several research agents against Apple's live documentation, developer forums, and DTS answers rather than trusting training data, then verified the simulator surface against your local Xcode. Some of what came back corrected my own assumptions. The honest capability map:</p>
+
+    <h3>Tier 1 &mdash; free, sandboxed, genuinely rich</h3>
+    <p>This is the app's real content. None of it needs a dollar or an entitlement request:</p>
+    <ul>
+      <li><strong>Core Motion</strong> — accelerometer, gyroscope, magnetometer, fused device motion, pedometer, barometric altimeter, motion activity classification, and AirPods head orientation via <code>CMHeadphoneMotionManager</code>.</li>
+      <li><strong>Core Location</strong> — coordinates, altitude, speed, visits, significant-change monitoring, region monitoring, and the precise-vs-reduced accuracy distinction, which is itself a great thing to <em>show</em> the user. Use the modern async surface (<code>CLLocationUpdate.liveUpdates()</code>, <code>CLServiceSession</code>, <code>CLMonitor</code>) rather than the delegate API — it's the current recommendation and it's clean under Swift 6 concurrency. Heading and compass are the exception: they need the magnetometer, so they're device-only.</li>
+      <li><strong>HealthKit</strong> — free-team eligible, the deepest well on the device, <em>and</em> it works in the simulator. That combination makes it the highest-value thing you can build against right now without hardware.</li>
+      <li><strong>Vision</strong> — faces, OCR, barcodes, body pose, saliency. Needs no permission at all, because it's pure computation over images you already have. In the simulator it's <em>partial</em>: text recognition works, but every neural-engine-backed request (faces, barcodes, saliency, body pose) fails with <code>Could not create inference context</code>. Plan OCR for the simulator and everything else for a device.</li>
+      <li><strong>Photos</strong> — per-asset EXIF and embedded GPS. Showing someone a map of where their camera roll was taken is the single most visceral demo in this app.</li>
+      <li><strong>Contacts, Calendar, Reminders, camera, microphone, speech</strong> — the classic TCC set.</li>
+      <li><strong>Core Bluetooth</strong> — no entitlement needed, and a promiscuous BLE scan reveals the surrounding device population. Highest-value sensor that is <em>completely</em> unavailable in the simulator.</li>
+      <li><strong>Unprompted device state</strong> — battery, thermal state, low-power mode, disk, uptime, locale, accessibility settings, network path, and pasteboard <em>metadata</em>. No permission dialog at all, which is precisely the point worth making to the user.</li>
+    </ul>
+
+    <div class="note">
+      <span class="lbl">One sensor the hardware has and no app can ever read</span>
+      <p>The ambient light sensor has <strong>no public API</strong>. The only surface for it anywhere in the SDK is <code>SRSensorAmbientLightSensor</code>, behind SensorKit's research gate. Same story for the proximity sensor's raw values. Worth featuring rather than omitting — &ldquo;here is a sensor in your phone that no third-party app is allowed to read&rdquo; is exactly the kind of thing this app exists to say.</p>
+    </div>
+
+    <div class="note">
+      <span class="lbl">The pasteboard nuance is a feature, not a footnote</span>
+      <p>Reading <code>.string</code> raises the &ldquo;pasted from&rdquo; banner. But <code>hasStrings</code>, <code>hasURLs</code>, <code>types</code>, <code>numberOfItems</code>, and the whole <code>detectPatterns(for:)</code> family read the clipboard's <em>shape</em> with no banner and no prompt. An app can know you have a URL on your clipboard, silently. Surface that in the UI with the banner-vs-silent distinction made explicit — it teaches the exact lesson the app exists to teach.</p>
+    </div>
+
+    <h3>Tier 2 &mdash; costs money, or money plus Apple's permission</h3>
+    <div class="tw"><table>
+      <thead><tr><th>Capability</th><th>Gate</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Wi-Fi SSID / BSSID</td><td class="mono-col">networking.wifi-info</td><td><span class="chip c-gated">Paid</span> and needs precise location too</td></tr>
+        <tr><td>Core NFC tag reading</td><td class="mono-col">nfc.readersession.formats</td><td><span class="chip c-gated">Paid</span></td></tr>
+        <tr><td>Focus status</td><td class="mono-col">usernotifications.communication</td><td><span class="chip c-gated">Paid</span> — returns one Bool, not the Focus name</td></tr>
+        <tr><td>Arbitrary Bonjour / multicast</td><td class="mono-col">networking.multicast</td><td><span class="chip c-gated">Paid + form</span></td></tr>
+        <tr><td>WeatherKit</td><td class="mono-col">weatherkit</td><td><span class="chip c-no">Paid only</span> — cut from v1</td></tr>
+        <tr><td>Family Controls</td><td class="mono-col">family-controls</td><td><span class="chip c-no">Paid, dev-only</span> — not free-team at all</td></tr>
+        <tr><td>SensorKit (20 raw sensors)</td><td class="mono-col">sensorkit.reader.allow</td><td><span class="chip c-no">Research study only</span></td></tr>
+      </tbody>
+    </table></div>
+    <p>SensorKit deserves a note because it is the thing that <em>sounds</em> like exactly this project: ambient light, PPG, ECG, wrist temperature, keyboard metrics, phone and message usage. Apple grants the entitlement only for approved research studies with IRB sign-off. Treat it as documented-and-closed. (It is also being redesigned — <code>SRSensorReader</code> is deprecated in iOS 27 in favour of a generic <code>SRReader</code>.)</p>
+
+    <h3>Tier 3 &mdash; impossible, and the sidequest lives here</h3>
+    <div class="note stop">
+      <span class="lbl">No sandboxed app can read another app's permissions. At any price.</span>
+      <p>Apple DTS, March 2026, answering this exact question: Apple does not provide the APIs. There is no cross-app TCC read — there isn't even a unified API for your <em>own</em> app's permission state. Enumerating installed apps is equally closed: <code>LSApplicationWorkspace</code> needs private entitlements no third-party profile can carry, and <code>canOpenURL</code> is presence-only, capped, and deprecated in iOS 27.</p>
+      <p><strong>One trap worth naming:</strong> <code>LSApplicationWorkspace.allApplications</code> returns a populated array in the <em>simulator</em> (no real <code>installd</code> to refuse it) and a silent empty array on device. A simulator-only workflow will happily &ldquo;prove&rdquo; that a dead API works. Do not build on it; it is also an automatic App Review rejection by static scan.</p>
+    </div>
+
+    <p>So the sidequest survives, but only through one door, and it is a good door:</p>
+
+    <h4>The App Privacy Report import</h4>
+    <p>iOS records, per app, every access to camera, microphone, photos, contacts, location, media library, and screen recording — plus every network domain contacted — on a rolling 7-day window. The user can export it as NDJSON from the share button in Settings. Your app receives that file through a share extension or document picker and parses it locally.</p>
+    <p><strong>Zero entitlements. Works sideloaded. Real bundle IDs, real timestamps, real domains.</strong> Two App Store apps already ship this exact feature, one updated as recently as July 2026, which is good evidence the format is still current.</p>
+    <p>Three consequences to design around now: the 7-day window means you must import repeatedly and <em>accumulate</em> history locally, and turning the report off wipes it — so onboarding has to walk the user through switching it on and warn them. Records carry bare bundle IDs, so you need a name/icon resolver; <code>itunes.apple.com/lookup?bundleId=…</code> does that (~20 req/min, cache hard) but returns no privacy labels. And the <code>domainOwner</code> field is usually empty, which a bundled copy of DuckDuckGo's Tracker Radar fixes offline.</p>
+
+    <div class="note warn">
+      <span class="lbl">Unresolved &mdash; and a real Phase 1 task, not a footnote</span>
+      <p>My research agents returned <em>two different schemas</em> for this file. One reports a current v4 shape keyed on <code>type</code>/<code>category</code> with <code>intervalBegin</code>/<code>intervalEnd</code> pairs joined on a UUID; the other cites an older v3 shape keyed on <code>stream</code>/<code>tccService</code>. The v3 form appears to be an iOS 15 beta format preserved in a community parser repo, but I could not confirm that from Apple — Apple documents the report's <em>contents</em> and never documents the export format at all.</p>
+      <p>The parser therefore gets built <strong>schema-first against a real export from your own phone</strong>, with a versioned decoder and a deliberate hard failure on unrecognised shapes. This is Task 0 of that workstream, and it needs your device even though the rest of Phase 1 doesn't.</p>
+    </div>
+
+    <p>The most interesting product idea in the whole project falls out of this: put <strong>declared</strong> behaviour next to <strong>observed</strong> behaviour. The App Store privacy label is what an app <em>claims</em> it collects; the NDJSON is what it <em>did</em>. The gap between them is the story. Note that labels have no API — only scraping <code>apps.apple.com</code> — so scope that as a stretch goal behind a cache, and get comfortable with the terms-of-service question before it ships anywhere.</p>
+  </div>
+</section>
+
+<!-- ================= 3 ================= -->
+<section>
+  <div class="rail"><b>03</b>Architecture</div>
+  <div class="body">
+    <h2>A shape that agents can actually work in</h2>
+    <p>Two constraints drive the whole layout: Xcode project files are hostile to automated editing, and <code>xcodebuild test</code> against a simulator is far too slow to sit inside a red-green-refactor loop. Both are solvable, and solving them is most of what makes the harness work.</p>
+
+    <h3>Logic lives in a Swift package, not the app</h3>
+    <p>Everything with behaviour goes into an SPM library that builds and tests <strong>on macOS</strong>. <code>swift test</code> then runs in seconds with no simulator, no signing, and no Xcode project involved — which is the loop agents can iterate in. The iOS app target stays a thin shell.</p>
+    <p>Core Motion doesn't exist on macOS, so the split is drawn deliberately: the protocol layer and every piece of logic are platform-free and fully testable; the live sensor adapters are <code>#if canImport(...)</code>-guarded, iOS-only, and kept as thin as they can possibly be. Anything worth testing lives on the macOS side of that line.</p>
+
+    <h3>The Xcode project is generated, never edited</h3>
+    <p>A declarative <code>project.yml</code> (XcodeGen) generates the <code>.xcodeproj</code>, which is gitignored entirely. No agent ever touches a <code>.pbxproj</code>, no merge conflicts in generated XML, and — critically — the Info.plist usage strings are generated from the Capability Ledger rather than hand-maintained.</p>
+
+    <pre class="tree"><code>glasshouse/
+├── Package.swift              <span class="cmt"># macOS-testable core</span>
+├── project.yml                <span class="cmt"># XcodeGen → .xcodeproj (gitignored)</span>
+├── capability-ledger.yml      <span class="cmt"># ★ single source of truth</span>
+├── Sources/
+│   ├── GlasshouseCore/        <span class="cmt"># pure Swift. protocols, models, catalog,</span>
+│   │                          <span class="cmt"># storage, NDJSON parser. NO Apple sensor SDKs.</span>
+│   ├── GlasshouseSensors/     <span class="cmt"># #if os(iOS) live adapters. thin.</span>
+│   └── GlasshouseFixtures/    <span class="cmt"># deterministic fakes + recorded replays</span>
+├── Tests/                     <span class="cmt"># swift test — the agent TDD loop</span>
+├── App/                       <span class="cmt"># SwiftUI shell + share extension</span>
+├── AppTests/                  <span class="cmt"># xcodebuild — adapter smoke + snapshots</span>
+├── docs/                      <span class="cmt"># owned by the docs/security steward</span>
+├── scripts/                   <span class="cmt"># bootstrap, test, lint, seed-simulator</span>
+└── .claude/
+    ├── agents/  skills/  workflows/  settings.json</code></pre>
+
+    <h3>Every sensor is one protocol with three implementations</h3>
+    <p>A sensor is an identifier, its ledger metadata, a start/stop, and a stream of samples. Each gets:</p>
+    <ul>
+      <li><strong>Live</strong> — the real framework call. iOS only. Deliberately trivial.</li>
+      <li><strong>Fake</strong> — deterministic, seeded, no I/O. What the tests run against.</li>
+      <li><strong>Replay</strong> — plays back a recorded fixture. What the simulator UI runs against.</li>
+    </ul>
+    <p>This is what makes simulator-only development viable rather than merely tolerable: the entire UI can be built and demoed against realistic accelerometer and GPS traces while the device sits in a drawer. It also means the day you finally get hardware, the work is writing thin adapters against an interface that's already proven, not discovering your architecture.</p>
+
+    <h3>The Capability Ledger</h3>
+    <p>One YAML file is the spine of the project. Each sensor declares its framework, exact Info.plist key, required entitlement, whether a free team can sign it, its true simulator behaviour, its data-sensitivity class, and a source URL for each claim.</p>
+    <pre><code><span class="kw">- id:</span> core_motion.altimeter_absolute
+  <span class="kw">framework:</span> CoreMotion
+  <span class="kw">plist_key:</span> NSMotionUsageDescription
+  <span class="kw">entitlement:</span> null
+  <span class="kw">free_team:</span> true
+  <span class="kw">simulator:</span> returns_nothing     <span class="cmt"># no motion injection exists</span>
+  <span class="kw">sensitivity:</span> high              <span class="cmt"># absolute altitude ≈ location</span>
+  <span class="kw">status:</span> not_started
+  <span class="kw">verified:</span> 2026-08-30
+  <span class="kw">source:</span> https://developer.apple.com/...</code></pre>
+    <p>It earns its place by being <em>executable</em>. Tests assert that every registered sensor has a ledger row, that every row with a <code>plist_key</code> produces that key in the generated Info.plist, that nothing marked <code>free_team: false</code> is reachable from the shipping target, and that no row's <code>verified</code> date has gone stale. The ledger also generates the docs table and, ultimately, the app's own explanatory copy — the ledger <em>is</em> the product's content, not scaffolding around it.</p>
+  </div>
+</section>
+
+<!-- ================= 4 ================= -->
+<section>
+  <div class="rail"><b>04</b>Harness</div>
+  <div class="body">
+    <h2>The agent fleet</h2>
+    <p>Six project agents in <code>.claude/agents/</code>. The split is deliberate: expensive models where judgement is needed, cheap ones where the work is mechanical, and one agent whose only job is to be sceptical about Apple.</p>
+
+    <div class="agents">
+      <div class="agent"><h5>apple-api-researcher</h5><p class="m">opus · web + read</p><p>Verifies every Apple claim against live docs before anyone writes code, and fills in ledger rows with sources. Runs <em>first</em> on each sensor.</p></div>
+      <div class="agent"><h5>sensor-implementer</h5><p class="m">opus · full tools</p><p>Takes one ledger row and TDDs it: fake first, tests, then the live adapter. Never touches more than one sensor.</p></div>
+      <div class="agent"><h5>privacy-report-analyst</h5><p class="m">opus · full tools</p><p>Owns the NDJSON importer, the schema-versioned decoder, and the identity/domain enrichment layer.</p></div>
+      <div class="agent"><h5>swift-test-runner</h5><p class="m">haiku · bash + read</p><p>Runs the suites, parses failures into structured output. Cheap and called constantly.</p></div>
+      <div class="agent"><h5>docs-security-steward</h5><p class="m">opus · full tools</p><p>Owns <code>docs/</code> and the security invariants. Details below — this is the one you asked to keep alive.</p></div>
+      <div class="agent"><h5>ui-builder</h5><p class="m">opus · full tools</p><p>SwiftUI shell against replay fixtures only. Kept away from sensor internals on purpose.</p></div>
+    </div>
+
+    <div class="note warn">
+      <span class="lbl">Why the researcher agent is not optional</span>
+      <p>While preparing this report, verification against live Apple sources overturned several things I would otherwise have asserted confidently: that <code>CTCarrier</code> now returns literal <code>"--"</code> placeholders rather than carrier data; that iOS 26 changed local-network privacy (it did not — that was macOS 15); that <code>canOpenURL</code> is fine (deprecated in iOS 27, cap dropping 50→25); that HealthKit needs a paid account (it does not). Apple's platform moves faster than any model's training data. Every ledger row carries a source URL and a verification date because of exactly this.</p>
+    </div>
+
+    <h3>The TDD loop, per sensor</h3>
+    <ol>
+      <li><strong>Research</strong> — <code>apple-api-researcher</code> fills the ledger row with sourced facts and the real simulator behaviour.</li>
+      <li><strong>Red</strong> — <code>sensor-implementer</code> writes failing tests against the protocol using the fake. Runs on macOS, in seconds.</li>
+      <li><strong>Green</strong> — minimal implementation. Fake passes.</li>
+      <li><strong>Adapter</strong> — the iOS-only live implementation, kept thin enough to be obviously correct, since it cannot be unit-tested here.</li>
+      <li><strong>Gate</strong> — ledger invariants, plist generation, and the no-egress check all pass.</li>
+      <li><strong>Document</strong> — the steward updates <code>docs/</code> and classifies the new data.</li>
+    </ol>
+    <p>Sensors are independent, so steps 1–5 fan out cleanly across parallel agents once the first two or three have proven the pattern end to end. A saved workflow in <code>.claude/workflows/</code> drives that fan-out: one agent per ledger row, pipelined so each sensor moves research→red→green→gate without waiting on its siblings.</p>
+
+    <h3>Keeping the docs agent alive &mdash; the honest answer</h3>
+    <p>There is no true daemon. Claude Code agents are session-scoped, and any claim otherwise is wrong. What exists is three mechanisms that together approximate what you want:</p>
+    <ol>
+      <li><strong>A <code>PostToolUse</code> hook</strong> matching <code>Edit|Write</code> appends changed paths to a docs-debt file. Nearly free — it just records.</li>
+      <li><strong>A <code>Stop</code> hook</strong> checks that file at end of turn and dispatches <code>docs-security-steward</code> if there's debt. A Stop hook can return exit code 2 to block the turn ending, so documentation genuinely cannot fall behind within a session.</li>
+      <li><strong>A scheduled task</strong> is the only mechanism that survives session death. A daily run re-verifies stale ledger rows, re-checks the security invariants, and opens issues for drift.</li>
+    </ol>
+    <p>1 and 2 keep docs current <em>during</em> work; 3 catches what happens between sessions. I'd wire all three and treat the schedule as the safety net rather than the primary path.</p>
+
+    <p class="thesis" style="font-family:inherit;font-size:inherit;color:var(--ink-2);margin-top:22px">One note on harness mechanics: hook event names and settings schema have expanded a lot recently, and my own research on the exotic ones came back partly unreliable. The three above are long-standing and safe. Phase 0 verifies the exact schema against your installed version before writing the config, rather than trusting either of us.</p>
+  </div>
+</section>
+
+<!-- ================= 5 ================= -->
+<section>
+  <div class="rail"><b>05</b>Testing</div>
+  <div class="body">
+    <h2>Three tiers, and what the simulator will actually give you</h2>
+    <div class="tw"><table>
+      <thead><tr><th>Tier</th><th>Runner</th><th>Speed</th><th>Covers</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Unit</strong></td><td class="mono-col">swift test (macOS)</td><td><span class="chip c-ok">seconds</span></td><td>All logic, catalog, ledger invariants, NDJSON parser, storage. <strong>Where agents live.</strong></td></tr>
+        <tr><td><strong>Integration</strong></td><td class="mono-col">xcodebuild (sim)</td><td><span class="chip c-gated">~1–2 min</span></td><td>Adapter smoke tests, permission flows, share-extension import, snapshots. Gate, not loop.</td></tr>
+        <tr><td><strong>Device</strong></td><td class="mono-col">manual checklist</td><td><span class="chip c-no">deferred</span></td><td>Every sensor that returns nothing in a simulator. Generated from the ledger.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>The simulator control surface</h3>
+    <p>I checked these against your local Xcode rather than the internet, so the syntax is exact. This is a better testing surface than it's usually given credit for:</p>
+    <ul>
+      <li><code>simctl privacy &lt;dev&gt; grant|revoke|reset &lt;service&gt; &lt;bundle&gt;</code> — deterministic permission states, no dialog. Valid services: <code>calendar</code>, <code>contacts</code>, <code>contacts-limited</code>, <code>location</code>, <code>location-always</code>, <code>photos</code>, <code>photos-add</code>, <code>media-library</code>, <code>microphone</code>, <code>motion</code>, <code>reminders</code>, <code>siri</code>, <code>all</code>.</li>
+      <li><code>simctl location &lt;dev&gt; start --speed=N --interval=N lat,lon lat,lon …</code> — interpolated GPS tracks. Genuinely excellent: fully repeatable location traces for testing visits, regions, and significant-change logic.</li>
+      <li><code>simctl addmedia</code> — seeds Photos with your own images (carrying whatever EXIF/GPS you choose) and Contacts from vCards, on top of what's already there.</li>
+      <li><code>simctl status_bar override</code> — fake battery level and state, cellular bars, operator name, Wi-Fi mode.</li>
+      <li><code>simctl pbcopy</code> / <code>pbpaste</code> — pasteboard fixtures for the silent-detection work.</li>
+      <li><code>simctl ui appearance</code>, <code>increase_contrast</code>, <code>content_size</code> for Dynamic Type, <code>simctl push</code>, <code>io recordVideo</code>, <code>keychain</code>. <code>simctl clone</code> plus <code>erase</code> is the right primitive for per-test isolation, and Face ID is genuinely testable once enrolled through the Features menu.</li>
+      <li><strong>Scripting caveat:</strong> on a headless boot with Simulator.app not attached, <code>simctl ui</code> and <code>simctl status_bar</code> hang indefinitely. Attach Simulator.app in any automated run, or avoid those two.</li>
+    </ul>
+
+    <div class="note">
+      <span class="lbl">Good news I had wrong &mdash; the simulator ships with real personal data</span>
+      <p>I assumed you'd need to seed everything. You don't. A stock iOS 26.2 simulator comes pre-loaded, verified by enumeration:</p>
+      <ul>
+        <li><strong>Roughly 90 calendar events</strong> across several calendars — birthdays, holidays, found-in-mail — plus a Reminders list. The richest seeded source on the device. (Two probes counted 87 and 92 over different windows, so treat the exact figure as approximate.)</li>
+        <li><strong>6 contacts</strong> with full phone numbers, emails, and postal addresses — the classic Kate Bell / John Appleseed set.</li>
+        <li><strong>6 photos carrying real GPS coordinates and full EXIF</strong> — Iceland, San Francisco, Marin — down to <code>Make=NIKON CORPORATION, Model=NIKON D90</code>, ISO, aperture, and focal length. One has a deliberate <code>-180,-180</code> sentinel for the no-GPS case, which is a free edge-case fixture.</li>
+      </ul>
+      <p>That changes the plan for the better: the &ldquo;here is a map of everywhere your camera roll has been&rdquo; demo — the most visceral thing this app does — is fully buildable today, with no hardware and no fixtures to author. I'd fold Photos-with-EXIF into the Phase 2 vertical slice on the strength of it.</p>
+    </div>
+
+    <div class="note warn">
+      <span class="lbl">But scripted permissions are less reliable than the help text implies</span>
+      <p>Measured: <code>simctl privacy grant photos &lt;bundle&gt;</code> writes the TCC record, yet <code>PHPhotoLibrary.authorizationStatus</code> still reported <code>.notDetermined</code> and asset fetches returned zero. The grant has to go through the real prompt from an app with a window. Keep at least one test path that drives the actual dialog rather than trusting the CLI — Apple's own help text warns that <code>simctl privacy</code> bypasses the usage-key requirement and can mask a missing-key bug.</p>
+    </div>
+
+    <div class="note warn">
+      <span class="lbl">Three gaps that decide the architecture &mdash; all measured, not assumed</span>
+      <p><strong>There is no motion injection.</strong> Nothing in <code>simctl</code> feeds accelerometer, gyroscope, magnetometer, or barometer data to a simulator — <code>motion</code> appears in the <em>privacy</em> service list, but only as a permission toggle with no data behind it. A probe run inside a booted iOS 26.2 simulator returned <code>false</code> for <em>every</em> Core Motion availability check, without exception. Core Motion is fake-and-replay-driven by construction, and that is the strongest argument for the three-implementation protocol.</p>
+      <p><strong>Battery is dead, and the obvious workaround doesn't work.</strong> <code>isBatteryMonitoringEnabled</code> refuses to become <code>true</code>, and <code>batteryLevel</code> stays at <code>-1.0</code>. Crucially, <code>status_bar override --batteryLevel</code> does <em>not</em> feed through to <code>UIDevice</code> — it is status-bar chrome only. Proximity monitoring is equally inert, and <code>processorCount</code>/<code>physicalMemory</code> report your Mac rather than a phone.</p>
+      <p><strong>Several permission states can't be scripted at all</strong> — Bluetooth, HealthKit, local network, tracking, speech recognition, notifications, and Focus are absent from <code>simctl privacy</code>, so those flows need a driven UI prompt or a device. Two services do work but aren't in the help text: <code>camera</code> and <code>willow</code> (HomeKit), found by probing and confirmed against the device's TCC database.</p>
+    </div>
+
+    <div class="note stop">
+      <span class="lbl">The failure mode to design against: silent empty success</span>
+      <p>The simulator rarely throws when a sensor is missing. It returns something empty, and empty looks like &ldquo;working code that found nothing.&rdquo; Each of these was measured:</p>
+      <ul>
+        <li><code>AVCaptureDevice.DiscoverySession</code> returns an <strong>empty array</strong>, not nil — so <code>devices.first!</code> crashes rather than reporting no camera.</li>
+        <li><code>CoreTelephony</code> returns an <strong>empty dictionary inside a non-nil Optional</strong>. Your unwrap succeeds and yields nothing.</li>
+        <li><code>CBManager.authorization</code> reports <code>.allowedAlways</code> while <code>CBCentralManager.state</code> is <code>.unsupported</code>. <strong>Gate on state, never authorization.</strong></li>
+        <li><code>status_bar</code> battery overrides never reach <code>UIDevice</code>, and <code>simctl privacy grant photos</code> never reaches PhotoKit.</li>
+      </ul>
+      <p>This is a direct argument for the ledger's <code>simulator:</code> column being enforced by tests. A sensor that reports &ldquo;0 samples, no error&rdquo; on a simulator and on a broken device looks identical, and only the ledger knows which one you're looking at.</p>
+    </div>
+    <p>Everything the simulator cannot do accumulates automatically into a device-verification checklist generated from the ledger's <code>simulator:</code> column — so the day you get hardware, the work is already enumerated instead of rediscovered.</p>
+  </div>
+</section>
+
+<!-- ================= 6 ================= -->
+<section>
+  <div class="rail"><b>06</b>Security</div>
+  <div class="body">
+    <h2>The thing you're building is a very attractive target</h2>
+    <p>You asked for a docs agent with a strong security focus. It's warranted, and not for the usual reasons. This app deliberately concentrates the most sensitive data a phone holds into one local store, and Phase 2's stated goal is to expose it over a public MCP server to third-party AI. That combination is the actual threat, and it deserves to be designed against from the first commit rather than retrofitted.</p>
+
+    <h3>Phase 1 invariants, enforced by tests</h3>
+    <ul>
+      <li><strong>No network egress. At all.</strong> A test fails the build if <code>URLSession</code>, <code>Network</code>, or any socket API appears outside a narrow allowlist. The one exception is the bundle-ID lookup, which is isolated behind a single named boundary, is the only place allowed to make a request, and is off by default.</li>
+      <li><strong>No analytics, no crash reporting, no third-party SDKs.</strong> Zero dependencies is the target; each one added needs a documented reason.</li>
+      <li><strong>Data Protection is explicit per store</strong>, defaulting to complete-until-first-unlock, with the choice recorded per sensitivity class rather than inherited by accident.</li>
+      <li><strong>The ledger carries a sensitivity class per sensor</strong>, and that class — not developer preference — determines retention, storage protection, and whether a stream is even enabled by default.</li>
+      <li><strong>Nothing is collected without a visible affordance.</strong> The app's entire premise is informed exposure; silent collection would be self-defeating even where it's legal.</li>
+    </ul>
+    <p>One thing you're <em>not</em> obliged to do: a privacy manifest (<code>PrivacyInfo.xcprivacy</code>) is an App Store Connect upload gate, not a runtime requirement. The OS doesn't consult it at launch and the simulator doesn't read it, so a sideloaded build needs none. Write one anyway — the required-reason API categories (file timestamps, boot time, disk space, active keyboards, <code>UserDefaults</code>) are precisely what a read-everything app touches, and authoring it now is how <code>capability-tiers.md</code> stays honest about the App Store path.</p>
+
+    <h3>What the steward owns in <code>docs/</code></h3>
+    <ul>
+      <li><code>threat-model.md</code> — assets, adversaries, and the trust boundary, revisited whenever a sensor lands.</li>
+      <li><code>data-classification.md</code> — generated from the ledger; every stream classified and justified.</li>
+      <li><code>capability-tiers.md</code> — the living answer to &ldquo;what would paid / TestFlight / App Store actually take,&rdquo; which is the doc you asked for. It stays current because the ledger already tracks <code>free_team</code> and entitlement per row.</li>
+      <li><code>phase-2-boundary.md</code> — the important one. What must be true before any of this data crosses the device boundary: authn/authz model, scope granularity, redaction and aggregation defaults, revocation, audit logging, and an explicit list of streams that should <em>never</em> be exposed regardless of auth.</li>
+      <li><code>device-verification.md</code> — generated checklist of everything the simulator cannot prove.</li>
+    </ul>
+
+    <div class="note stop">
+      <span class="lbl">Flagging one thing now, for Phase 2</span>
+      <p>&ldquo;Expose useful data over a public MCP server to ChatGPT, Claude, whatever&rdquo; means handing continuous, real-time access to your location history, health record, contacts, and calendar to third-party model providers under their terms, not yours. That may well be a trade you want to make knowingly — it's your data and your call. It should not be a trade you make by default because Phase 1 happened to leave a port open.</p>
+      <p>Concretely: Phase 1 ships with no network stack at all, so Phase 2 has to add one deliberately. <code>phase-2-boundary.md</code> gets written during Phase 1, while the constraints are cheap to impose, rather than during Phase 2 when they'd be in the way.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 7 ================= -->
+<section>
+  <div class="rail"><b>07</b>Sequence</div>
+  <div class="body">
+    <h2>Phases, with exit criteria</h2>
+    <p>Each phase ends on a checkable condition, not a vibe. Phases 2 and 3 are where the agent fleet earns its keep.</p>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-n">P0</span><span class="phase-t">Harness bootstrap</span><span class="phase-meta">main session · no fleet</span></div>
+      <p>Create <code>~/gh/glasshouse</code>, git init, SPM skeleton, XcodeGen <code>project.yml</code>, scripts for test/lint/seed. Install <code>xcodegen</code>, <code>swiftlint</code>, <code>xcbeautify</code> (none are currently on this machine). Write <code>.claude/</code>: the six agents, the hooks, permissions allowlisting <code>swift test</code> and <code>xcodebuild</code>. Verify the hook schema against your installed Claude Code version before writing it.</p>
+      <p><strong>Also upgrade Xcode, and you have no cheaper option.</strong> You're on 26.2 with only an iOS 26.2 runtime while shipping iOS is 26.6.1. I tested whether the gap could be closed without a toolchain upgrade: <code>xcodebuild -downloadPlatform iOS -buildVersion</code> was refused for 26.1, 26.3, 26.5, and 26.9 — &ldquo;not available for download&rdquo; — while 18.6 began downloading immediately. Apple's index exposes <em>previous majors</em> to an older Xcode, never newer point releases of its own. So developing four point releases behind is structural until you install Xcode 26.6, which is a bad place to stand in a project whose subject is per-version API behaviour.</p>
+      <div class="exit"><b>Exit</b><code>swift test</code> passes green on a trivial test, <code>xcodegen generate</code> produces a project that builds for the simulator, and a dispatched subagent can run the suite and report back.</div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-n">P1</span><span class="phase-t">Ledger and catalog</span><span class="phase-meta">researcher + steward</span></div>
+      <p>The researcher populates <code>capability-ledger.yml</code> for the full sensor inventory with sources and verification dates. Build the catalog type, the plist generator, and the invariant tests. Steward writes the threat model and data classification.</p>
+      <div class="exit"><b>Exit</b>Ledger invariant tests pass; generated Info.plist matches the ledger exactly; a deliberately introduced mismatch fails the build.</div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-n">P2</span><span class="phase-t">Vertical slice &mdash; three sensors</span><span class="phase-meta">serial · proves the loop</span></div>
+      <p>One sensor from each behavioural class, done end to end by a single implementer agent — deliberately chosen so the three exercise different parts of the design:</p>
+      <ul>
+        <li><strong>Accelerometer</strong> — no data in the simulator at all. Proves the fake-and-replay path.</li>
+        <li><strong>Location</strong> — scriptable via <code>simctl location start</code>. Proves deterministic driven input.</li>
+        <li><strong>Photos with EXIF and GPS</strong> — real seeded data behind a real permission prompt. Proves the permission flow, and it's the app's best demo.</li>
+      </ul>
+      <p>Battery was the original third pick; the measurements moved it, since it returns nothing in a simulator and can't be faked through <code>status_bar</code>.</p>
+      <div class="exit"><b>Exit</b>Three sensors green under <code>swift test</code>; a scripted GPS track drives a passing integration test; the camera roll renders on a map from seeded EXIF; the replay fixture format is settled.</div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-n">P3</span><span class="phase-t">Fan-out &mdash; the rest</span><span class="phase-meta">parallel workflow · opus</span></div>
+      <p>A saved workflow spawns one agent per remaining ledger row, pipelined research→red→green→gate. Bluetooth, HealthKit, Photos+EXIF, Contacts, Calendar, pedometer, altimeter, headphone motion, network path, pasteboard-shape, device state, and the rest.</p>
+      <div class="exit"><b>Exit</b>Every ledger row is <code>implemented</code> or explicitly <code>blocked</code> with a reason; no row is silently missing.</div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-n">P4</span><span class="phase-t">Attribution &mdash; App Privacy Report</span><span class="phase-meta">needs your phone once</span></div>
+      <p>Starts with you exporting a real NDJSON from your iPhone so the schema question gets settled empirically. Then: share extension and document picker, versioned decoder, interval-pair joining, an accumulating local store that outlives the 7-day window, bundle-ID resolution, and offline domain enrichment.</p>
+      <div class="exit"><b>Exit</b>A real export imports cleanly; re-importing overlapping exports accumulates rather than duplicating; an unknown schema version fails loudly instead of silently dropping records.</div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-n">P5</span><span class="phase-t">Minimal UI</span><span class="phase-meta">ui-builder · replay fixtures</span></div>
+      <p>Deliberately plain and option-preserving, as you asked: a sensor list grouped by permission state, a live readout per sensor, the permission-prompt distinction made visible, and the attribution view. Built entirely against replay fixtures.</p>
+      <div class="exit"><b>Exit</b>Every implemented sensor is reachable and renders in the simulator from replay data.</div>
+    </div>
+
+    <div class="phase">
+      <div class="phase-h"><span class="phase-n">P6</span><span class="phase-t">Device day</span><span class="phase-meta">decision point</span></div>
+      <p>First real deploy. Work the generated device-verification checklist. This is where every hidden entitlement problem surfaces at once — expect it, and budget for it rather than treating it as a surprise. Then decide, with real data in hand, whether the paid account is worth it.</p>
+      <div class="exit"><b>Exit</b>Checklist complete; ledger's <code>simulator:</code> and <code>free_team:</code> columns corrected against reality; <code>capability-tiers.md</code> updated with what you actually hit.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 8 ================= -->
+<section>
+  <div class="rail"><b>08</b>Open</div>
+  <div class="body">
+    <h2>What I need from you before Phase 0</h2>
+    <p>Nothing here blocks me from starting, but three of them are cheaper to answer now than to unwind later.</p>
+    <ol>
+      <li><strong>The name.</strong> I've used <em>Glasshouse</em> throughout — you live in one, everyone can see in. Say the word and it becomes anything else; it's a rename in one place at this stage and a nuisance later.</li>
+      <li><strong>A real App Privacy Report export.</strong> Turn it on now (Settings → Privacy &amp; Security → App Privacy Report), because it only records from the moment it's enabled and keeps 7 days. Enabling it today means P4 has real data to work with when it arrives. This is the one thing that's genuinely time-sensitive.</li>
+      <li><strong>Does the device-day budget include $99?</strong> It changes what the ledger marks as reachable, and therefore what P3 bothers implementing. My read: start free, decide at P6 with evidence.</li>
+      <li><strong>How aggressive should the schedule be?</strong> The daily steward run costs tokens whether or not there's drift. Daily is my default; weekly is defensible.</li>
+    </ol>
+
+    <h3>My recommendation</h3>
+    <p>Approve P0 through P2 as one unit. The harness only proves itself when a real sensor goes end to end through it, and three sensors is the smallest honest test of that. If the loop works there, P3's fan-out is mechanical; if it doesn't, we'll know before committing a fleet to it.</p>
+  </div>
+</section>
+
+<!-- ================= 9 ================= -->
+<section>
+  <div class="rail"><b>09</b>Appendix</div>
+  <div class="body">
+    <h2>Provenance</h2>
+    <p>Fast-moving facts were verified against live sources rather than recalled, per your standing instruction. Where verification failed or conflicted, it's marked rather than smoothed over.</p>
+
+    <details>
+      <summary>Verified locally against your machine</summary>
+      <ul>
+        <li>Xcode 26.2 (17C52), Swift 6.2.3, single iOS 26.2 simulator runtime. <code>xcodegen</code>, <code>tuist</code>, <code>swiftlint</code>, <code>swiftformat</code>, <code>xcbeautify</code> are all absent; <code>gh</code> and <code>jq</code> are present.</li>
+        <li>The complete <code>simctl privacy</code> service list, and the absence of camera / Bluetooth / HealthKit / local-network / tracking from it.</li>
+        <li><code>simctl location</code>, <code>status_bar override</code>, <code>addmedia</code>, <code>ui</code>, <code>io</code>, <code>pbcopy</code>/<code>pbpaste</code> syntax and options.</li>
+        <li>Absence of any motion-injection facility across the full <code>simctl</code> subcommand list.</li>
+        <li><code>CODE_SIGNING_ALLOWED = NO</code> in the iPhoneSimulator platform defaults.</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>Measured empirically inside a booted iOS 26.2 simulator</summary>
+      <p>Probe binaries compiled against <code>iPhoneSimulator26.2.sdk</code> and run on a booted iPhone 17 Pro. These are measurements, not inferences:</p>
+      <ul>
+        <li><strong>Every</strong> Core Motion availability check returns <code>false</code> — accelerometer, gyro, magnetometer, device motion, all six pedometer capabilities, relative and absolute altimeter, motion activity, headphone motion, sensor recorder.</li>
+        <li><code>HKHealthStore.isHealthDataAvailable()</code> returns <strong>true</strong>. Health.app and the health daemons ship in the runtime. (Whether <code>requestAuthorization</code> shows a sheet is still untested — it wedged the simulator.)</li>
+        <li><code>headingAvailable()</code> is false; <code>significantLocationChangeMonitoringAvailable()</code> and circular-region monitoring report available; iBeacon ranging is false.</li>
+        <li>Battery monitoring cannot be enabled; level stays <code>-1.0</code>; <code>status_bar override</code> does not reach <code>UIDevice</code>. Proximity monitoring won't enable either.</li>
+        <li><code>processorCount</code> and <code>physicalMemory</code> report the host Mac, not a simulated phone.</li>
+        <li>Seeded data enumerated directly: 92 events / 3 calendars, 6 contacts, 6 photos with GPS and full EXIF. Present even on a never-booted device.</li>
+        <li><code>AVCaptureDevice.DiscoverySession</code> across all 11 device types returns <strong>zero</strong> video and depth devices; audio returns one non-functional stub with no formats. Microphone capture through <code>AVAudioEngine</code> nonetheless works and captured real host-Mac audio.</li>
+        <li>Vision: <code>RecognizeTextRequest</code> succeeded; face, barcode, saliency, and body-pose requests all failed on the inference context.</li>
+        <li>ARKit and NearbyInteraction report <code>isSupported = false</code> for every configuration. <code>SpeechTranscriber</code> (iOS 26) reports unavailable with zero locales; <code>SFSpeechRecognizer</code> still instantiates.</li>
+        <li><code>simctl privacy grant photos</code> writes TCC but does not take effect — the API still reads <code>.notDetermined</code>.</li>
+        <li><code>JournalingSuggestions.framework</code> is absent from the simulator SDK entirely and present in the device SDK. It also needs a paid entitlement, so it's out of scope twice over.</li>
+        <li><code>CBCentralManager.state</code> settles on <code>.unsupported</code> — not <code>.poweredOff</code> — while <code>CBManager.authorization</code> claims <code>.allowedAlways</code>.</li>
+        <li>Xcode 26.2 refuses to download any newer 26.x runtime (26.1, 26.3, 26.5, 26.9 all &ldquo;not available&rdquo;) but will happily fetch iOS 18.6. The version gap is structural, not a settings problem.</li>
+        <li><code>simctl privacy</code> accepts two services missing from its own help text: <code>camera</code> and <code>willow</code>. Roughly thirty other plausible names are rejected outright.</li>
+        <li>Location scenarios are <code>City Run</code>, <code>City Bicycle Ride</code>, <code>Freeway Drive</code>, and <code>Apple</code> — and <code>location list</code> returns an empty table unless the device is booted.</li>
+      </ul>
+      <p>Housekeeping: the probes briefly wedged CoreSimulator. All simulators are now shut down, all three throwaway probe apps are uninstalled, and no erase was needed — your simulator state is intact. The HealthKit prompt test failed with a CoreSimulator bridge crash rather than an entitlement rejection, which is mildly reassuring about the free-tier conclusion but leaves it as inference.</p>
+    </details>
+
+    <details>
+      <summary>Verified against Apple's live documentation and DTS</summary>
+      <ul>
+        <li>Free personal team capability set, and its exclusions. HealthKit and all background modes confirmed available; Family Controls, SensorKit, Wi-Fi info, NFC, push, iCloud confirmed unavailable.</li>
+        <li>Free-team limits: 7-day profiles, 10 concurrent App IDs, 3 devices per platform.</li>
+        <li>SensorKit's 20-sensor inventory and its research-study gate; <code>SRSensorReader</code> deprecated in iOS 27.</li>
+        <li>Family Controls token opacity, and the <code>DeviceActivityReport</code> extension's read-only sandbox.</li>
+        <li><code>CTCarrier</code> deprecated in iOS 16 with no replacement, now returning placeholder values.</li>
+        <li><code>canOpenURL</code> deprecated in iOS 27; scheme cap dropping from 50 to 25.</li>
+        <li>Wi-Fi SSID requiring both the entitlement and precise location authorization.</li>
+        <li>Pasteboard's no-prompt read surface.</li>
+        <li>No cross-app permission API exists, per an explicit March 2026 DTS answer to this exact question.</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>Explicitly unverified &mdash; treat as tasks, not facts</summary>
+      <ul>
+        <li><strong>App Privacy Report NDJSON schema.</strong> Conflicting v3/v4 reports; Apple documents neither the export nor the format. Settle empirically in P4.</li>
+        <li>Whether the export filename still carries a <code>v4</code> suffix on current iOS.</li>
+        <li>Whether <code>HKHealthStore.requestAuthorization</code> actually presents its sheet in the simulator. The framework is available; the prompt is untested. First thing P1 should check.</li>
+        <li>Whether region enter/exit events genuinely fire when location is driven by <code>simctl location start</code>. The API reports available; delivery is unproven.</li>
+        <li>Whether <code>startMonitoringVisits</code> produces anything in a simulator. Assume not — visit detection needs real dwell patterns and device motion.</li>
+        <li>Whether Vision's neural requests fail on <em>every</em> machine or just the one tested. The text path worked and all ANE-backed paths failed on one Apple Silicon Mac; treat as expected-to-fail, worth one confirmation.</li>
+        <li>iOS 27 API changes beyond the two confirmed deprecations. Not researched; iOS 27 is in beta with GA expected this fall.</li>
+        <li>Exact current Claude Code hook event names and settings schema. Research came back partly unreliable; verify against the installed version in P0.</li>
+        <li>iTunes Lookup API terms-of-service fit for this use case, and the legality of App Store label scraping. Both are stretch-goal blockers, not P1 blockers.</li>
+      </ul>
+    </details>
+
+    <details>
+      <summary>Corrections to things I would otherwise have asserted</summary>
+      <p>Worth recording, because it's the argument for the researcher agent existing:</p>
+      <ul>
+        <li>I would have said HealthKit needs a paid account. It does not.</li>
+        <li>I would have said iOS 26 changed local-network privacy. It didn't — that was macOS 15, and iOS has been unchanged since 14.</li>
+        <li>I would have said <code>canOpenURL</code> was a viable, if weak, detection method. It's deprecated and its cap is halving.</li>
+        <li>I would have assumed <code>LSApplicationWorkspace</code> simply fails. It returns real data in the simulator and empty on device — worse than failing.</li>
+        <li>I would have reached for <code>status_bar override --batteryLevel</code> as a battery fixture. It doesn't reach <code>UIDevice</code> at all.</li>
+        <li>I would have listed <code>CMFallDetectionManager</code> as a sensor. It's <code>API_UNAVAILABLE</code> on iOS — watchOS only, and it won't compile. <code>CMBatchedSensorManager</code> is the nastier variant: it <em>does</em> compile on iOS and simply reports unsupported, so it needs an availability check rather than a compile guard.</li>
+        <li>I would have put <code>CLServiceSession</code> at iOS 17 alongside <code>CLLocationUpdate</code>. It's iOS 18.</li>
+        <li>I would have used <code>NSLocationUsageDescription</code> as a general key. It's macOS-only, and <code>requestAlwaysAuthorization()</code> silently no-ops unless <em>both</em> iOS keys are present.</li>
+        <li>I told you in the first draft that the simulator ships no usable seeded data and that Vision works fully there. Both were wrong: it ships plenty, and Vision is partial. Corrected above.</li>
+        <li>I'd have written <code>NSPhotoLibraryAddOnlyUsageDescription</code>. The real key is <code>NSPhotoLibraryAddUsageDescription</code>.</li>
+        <li>I'd have put <code>CNAuthorizationStatus.limited</code> at iOS 17. It's iOS 18.</li>
+      </ul>
+    </details>
+  </div>
+</section>
+
+</div>

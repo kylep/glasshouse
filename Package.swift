@@ -9,6 +9,7 @@ let package = Package(
     products: [
         .library(name: "GlasshouseCore", targets: ["GlasshouseCore"]),
         .library(name: "GlasshouseSensors", targets: ["GlasshouseSensors"]),
+        .executable(name: "glasshouse-ledger", targets: ["LedgerTool"]),
     ],
     targets: [
         // Pure Swift. No CoreMotion, CoreLocation, HealthKit, or any other
@@ -18,6 +19,10 @@ let package = Package(
         // Live adapters over Apple frameworks, guarded by #if os(iOS).
         // Kept as thin as possible because it cannot be unit tested on macOS.
         .target(name: "GlasshouseSensors", dependencies: ["GlasshouseCore"]),
+
+        // Emits Info.plist, the JSON export, and the generated docs from the
+        // ledger, so none of it is written down twice.
+        .executableTarget(name: "LedgerTool", dependencies: ["GlasshouseCore"]),
 
         .testTarget(name: "GlasshouseCoreTests", dependencies: ["GlasshouseCore"]),
     ]
