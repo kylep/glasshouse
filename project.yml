@@ -1,0 +1,44 @@
+# XcodeGen manifest. The .xcodeproj is generated from this file and gitignored,
+# so no agent or human ever edits a .pbxproj. Regenerate with:
+#
+#     scripts/bootstrap.sh
+#
+# Info.plist usage-description keys are deliberately NOT hand-written here.
+# From Phase 1 they are generated from capability-ledger.yml, so that a sensor
+# can never ship without a declared purpose string. See docs/architecture.md.
+name: Glasshouse
+
+options:
+  bundleIdPrefix: fit.glasshouse
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "18.0"
+
+packages:
+  Glasshouse:
+    path: .
+
+targets:
+  Glasshouse:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: Glasshouse
+        product: GlasshouseCore
+      - package: Glasshouse
+        product: GlasshouseSensors
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: fit.glasshouse.app
+        PRODUCT_NAME: Glasshouse
+        MARKETING_VERSION: "0.1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "6.2"
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_STRICT_CONCURRENCY: complete

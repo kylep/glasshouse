@@ -1,0 +1,41 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(swift test:*)",
+      "Bash(swift build:*)",
+      "Bash(xcodegen:*)",
+      "Bash(xcodebuild:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(xcrun swift:*)",
+      "Bash(./scripts/test.sh:*)",
+      "Bash(./scripts/bootstrap.sh:*)",
+      "Bash(./scripts/test-simulator.sh:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(./captures/**)",
+      "Read(./personal/**)",
+      "Bash(git add -A:*)",
+      "Bash(git add .:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mkdir -p \"$CLAUDE_PROJECT_DIR/.claude/state\" && jq -r '.tool_input.file_path // empty' >> \"$CLAUDE_PROJECT_DIR/.claude/state/docs-debt.txt\" 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}

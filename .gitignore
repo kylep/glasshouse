@@ -1,0 +1,61 @@
+# ── Generated Xcode project ────────────────────────────────────────────────
+# The .xcodeproj is generated from project.yml by XcodeGen and is never edited
+# by hand or committed. Run `scripts/bootstrap.sh` to regenerate it.
+*.xcodeproj
+*.xcworkspace
+!*.xcodeproj/project.xcworkspace
+
+# ── Build output ───────────────────────────────────────────────────────────
+.build/
+.swiftpm/
+DerivedData/
+build/
+*.o
+*.dSYM
+*.ipa
+*.dSYM.zip
+
+# ── Xcode user state ───────────────────────────────────────────────────────
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.xccheckout
+*.moved-aside
+
+# ── Secrets and credentials ────────────────────────────────────────────────
+# This project reads the most sensitive data a phone holds. Nothing that could
+# authenticate, identify, or de-anonymise anyone belongs in version control.
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.p8
+*.cer
+*.certSigningRequest
+*.mobileprovision
+*.provisionprofile
+secrets/
+*secret*
+*credential*
+*.keychain
+AuthKey_*.p8
+
+# ── Captured personal data ─────────────────────────────────────────────────
+# Real sensor traces, exports, and fixtures recorded from an actual phone are
+# personal data. Only synthetic or hand-authored fixtures may be committed;
+# anything recorded from a real device stays local.
+captures/
+recordings/
+*.ndjson
+!Tests/**/Fixtures/*.ndjson
+personal/
+*.gpx
+!Tests/**/Fixtures/*.gpx
+
+# ── Agent scratch state ────────────────────────────────────────────────────
+.claude/state/
+.claude/settings.local.json
+
+# ── macOS ──────────────────────────────────────────────────────────────────
+.DS_Store
