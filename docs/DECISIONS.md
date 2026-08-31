@@ -113,7 +113,7 @@ it changes.
 
 ## D5 — I wrote the sensor adapters directly instead of fanning out to agents
 
-**Decided:** Built the 19 live adapters myself rather than dispatching one
+**Decided:** Built the live adapters myself rather than dispatching one
 implementer agent per ledger row, which is what the plan described.
 
 **Why:** All the verified Apple research was already in context from the six

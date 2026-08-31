@@ -8,11 +8,14 @@ It is deliberately invasive, and deliberately honest about it. Nothing is
 collected without a visible affordance, and in this phase nothing leaves the
 device at all.
 
-> **Status: running.** 50 capabilities catalogued, 19 live sensor adapters, and
-> an App Privacy Report importer. Launched in the Simulator it opens with
-> *"6 things about you are readable right now, without anything asking"* over
-> a list of exactly which. Nothing has been verified on real hardware yet —
-> see [`docs/device-verification.md`](docs/device-verification.md).
+> **Status: running.** 59 capabilities catalogued (50 reachable on a free
+> account), 20 live sensor adapters, and an App Privacy Report importer.
+> Launched in the Simulator it opens with *"7 things about you are readable
+> right now, without anything asking"* over a list of exactly which.
+>
+> Nothing has been verified on real hardware yet, and that is the honest
+> caveat on everything here — see
+> [`docs/device-verification.md`](docs/device-verification.md).
 
 ## Why it exists
 
