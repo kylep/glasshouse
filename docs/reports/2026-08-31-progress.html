@@ -67,7 +67,7 @@ pre code{background:none;border:none;padding:0;font-size:inherit;white-space:pre
 <header class="mast">
   <p class="eyebrow">Progress report <span>/</span> 2026-08-31 <span>/</span> built while you were out</p>
   <h1>Glasshouse is running</h1>
-  <p class="thesis">Six commits, 96 tests, and an app that opens with <strong>&ldquo;6 things about you are readable right now, without anything asking&rdquo;</strong> over a list of exactly which. All pushed to main. Four judgement calls need your review; two things are blocked on you.</p>
+  <p class="thesis">Nine commits, 105 tests, and an app that opens with <strong>&ldquo;6 things about you are readable right now, without anything asking&rdquo;</strong> over a list of exactly which. All pushed to main. Four judgement calls need your review; two things are blocked on you.</p>
 </header>
 
 <section>
@@ -77,11 +77,11 @@ pre code{background:none;border:none;padding:0;font-size:inherit;white-space:pre
 
     <div class="stats">
       <div class="stat"><b>59</b><span>capabilities</span></div>
-      <div class="stat"><b>19</b><span>live adapters</span></div>
-      <div class="stat"><b>96</b><span>tests passing</span></div>
+      <div class="stat"><b>20</b><span>live adapters</span></div>
+      <div class="stat"><b>105</b><span>tests passing</span></div>
       <div class="stat"><b>4,469</b><span>lines of source</span></div>
       <div class="stat"><b>1,128</b><span>lines of tests</span></div>
-      <div class="stat"><b>6</b><span>commits on main</span></div>
+      <div class="stat"><b>9</b><span>commits on main</span></div>
     </div>
 
     <figure class="shotwrap">
@@ -203,7 +203,49 @@ pre code{background:none;border:none;padding:0;font-size:inherit;white-space:pre
 </section>
 
 <section>
-  <div class="rail"><b>05</b>Honesty</div>
+  <div class="rail"><b>05</b>Review</div>
+  <div class="body">
+    <h2>I had the work audited, and it was not clean</h2>
+    <p>After the build was green and pushed, I dispatched an independent reviewer agent over the whole implementation with instructions to be sceptical and to say plainly if it found nothing. It found a lot, concentrated exactly where you would expect: <strong>the iOS adapters, which no test can reach.</strong> Everything below is now fixed and pushed.</p>
+
+    <div class="note stop">
+      <span class="lbl">Four ways the app could hang forever</span>
+      <p>These were the worst, because none of them fails locally — a Simulator never exercises the paths.</p>
+      <ul>
+        <li>The barometer adapter returned from its Core Motion handler <em>without resuming</em> when the sensor reported an error, leaking the continuation and leaving the barometer running.</li>
+        <li>Two overlapping altimeter reads clobbered each other's handler on a shared object, stranding one of them.</li>
+        <li><code>CMPedometer</code> and <code>EKEventStore</code> were local variables, released while their queries were still in flight — after which the completion handler may simply never fire.</li>
+        <li>The location permission request waited forever if you backgrounded the app with the dialog open, leaving the button spinning for the life of the process.</li>
+      </ul>
+      <p><strong>The blast radius is what makes these serious.</strong> Reading all sensors awaits a task group over every capability, so any one of these stalling meant the sensor list never populated again — the app would just look frozen. All four now resume exactly once on every path, with timeouts.</p>
+    </div>
+
+    <div class="note warn">
+      <span class="lbl">Three places the app stated something false</span>
+      <p>Write-only calendar access was mapped to &ldquo;partial access&rdquo;, contradicting the comment directly above it. Since partial access counts as readable, the app claimed data, showed none, and then flagged itself as broken — permanently.</p>
+      <p>The import history double-counted the exact case it was written to prevent: an access seen still-open one week and completed the next are different values, so a set union kept both and counted one real event twice.</p>
+      <p>And an access that began before the report window opened was recorded as lasting <em>zero seconds</em> rather than an unknown duration — a fabricated number, in the part of the app most concerned with not fabricating numbers.</p>
+    </div>
+
+    <p>Six adapters would also simply never have worked on your phone: the accelerometer and gyroscope read before their first sample arrived and never stopped running, the compass never started, location read its cache before requesting a fix, battery reported &ldquo;no hardware&rdquo; on a device that has one, and the notifying clipboard read was unreachable from every screen.</p>
+
+    <h3>And six tests that could not fail</h3>
+    <p>The reviewer checked the tests too, and found six that would pass with the code deleted. The worst asserted that a Boolean is either true or false. Two others compared the fake sensor generator against the rule it was written from — a tautology dressed as a drift check.</p>
+    <p>They are rewritten to test behaviour: one now builds a source that <em>lies</em> about being ready and confirms the anomaly detector catches it, which is what the original pair only claimed to do.</p>
+
+    <div class="note warn">
+      <span class="lbl">And my no-egress guard was weaker than my README said</span>
+      <p>I had written that the invariant test &ldquo;fails the build if any of that changes&rdquo;. It was an eight-token blocklist over two directories, missing most of the ways bytes actually leave a device.</p>
+      <p>It now strips comments before scanning — so documenting <em>why</em> an API is banned no longer trips the ban on it — covers the tests too, checks many more APIs, and confines the one Network import to the single file that needs it. That file now genuinely exists: rather than keeping an exemption for code that had never been written, the connectivity sensor is implemented, and the app reports one more thing readable without asking.</p>
+      <p>The README now says plainly that this is a blocklist of names, not a proof.</p>
+    </div>
+
+    <p class="thesis" style="font-family:inherit;font-size:inherit;color:var(--ink-2);margin-top:22px">Worth saying: the reviewer was right about the shape of the risk before it read a line. Everything it found lives in the one target that <code>swift test</code> does not even compile. That is an argument for device day, and for running a review like this again after the next batch.</p>
+  </div>
+</section>
+
+<section>
+  <div class="rail"><b>06</b>Honesty</div>
   <div class="body">
     <h2>What is verified, and what is not</h2>
     <p>Worth being precise, because an app about honest disclosure should be honest about itself.</p>
@@ -215,7 +257,7 @@ pre code{background:none;border:none;padding:0;font-size:inherit;white-space:pre
         <tr><td>App builds and launches</td><td><span class="chip c-ok">Verified</span> installed and screenshotted in the Simulator</td></tr>
         <tr><td>Info.plist generated from the ledger</td><td><span class="chip c-ok">Verified</span> build fails without a purpose string</td></tr>
         <tr><td>No network egress</td><td><span class="chip c-ok">Verified</span> enforced by a source-tree scan</td></tr>
-        <tr><td>The 19 live adapters return correct data</td><td><span class="chip c-no">Unverified</span> they compile and report availability correctly; almost none can produce data in a Simulator</td></tr>
+        <tr><td>The 20 live adapters return correct data</td><td><span class="chip c-no">Unverified</span> reviewed and fixed, but almost none can produce data in a Simulator</td></tr>
         <tr><td>The NDJSON decoder matches iOS</td><td><span class="chip c-no">Unverified</span> fixtures are hand-authored, not captured</td></tr>
         <tr><td>Permission dialogs behave correctly</td><td><span class="chip c-no">Unverified</span> I could not drive the Simulator UI &mdash; the control tool lost its connection</td></tr>
         <tr><td>Ledger claims about Apple APIs</td><td><span class="chip c-gated">Sourced</span> every row carries a URL and a date; some are measured, some are documentation</td></tr>
@@ -233,7 +275,7 @@ pre code{background:none;border:none;padding:0;font-size:inherit;white-space:pre
 </section>
 
 <section>
-  <div class="rail"><b>06</b>Next</div>
+  <div class="rail"><b>07</b>Next</div>
   <div class="body">
     <h2>What I would do next</h2>
     <ol>
