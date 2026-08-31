@@ -19,19 +19,25 @@ public struct LiveBatterySource: SensorSource {
     public init() {}
 
     public func availability() async -> SensorAvailability {
-        await MainActor.run {
-            UIDevice.current.isBatteryMonitoringEnabled = true
-            // The Simulator refuses to enable monitoring at all, and reports a
-            // level of -1. Both are checked: -1 is the documented "unknown".
-            guard UIDevice.current.isBatteryMonitoringEnabled,
-                  UIDevice.current.batteryLevel >= 0
-            else {
-                return .unavailable(reason: RuntimeEnvironment.current == .simulator
-                    ? .simulator
-                    : .hardwareAbsent)
+        // The level is populated asynchronously after monitoring is enabled, so
+        // reading it in the same breath can see -1 on a device that plainly has
+        // a battery. Enable, yield, then check — otherwise the very first
+        // refresh reports "this device doesn't have the hardware" on a phone.
+        await MainActor.run { UIDevice.current.isBatteryMonitoringEnabled = true }
+
+        for _ in 0..<6 {
+            let ready = await MainActor.run {
+                UIDevice.current.isBatteryMonitoringEnabled && UIDevice.current.batteryLevel >= 0
             }
-            return .ready
+            if ready { return .ready }
+            try? await Task.sleep(for: .milliseconds(50))
         }
+
+        // The Simulator refuses to enable monitoring at all and pins the level
+        // at -1, so it always lands here — correctly.
+        return .unavailable(reason: RuntimeEnvironment.current == .simulator
+            ? .simulator
+            : .hardwareAbsent)
     }
 
     public func read() async -> SensorSample? {

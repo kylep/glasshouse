@@ -2,14 +2,36 @@ import SwiftUI
 import GlasshouseCore
 
 struct SensorDetailView: View {
-    let snapshot: SensorSnapshot
+    /// Deliberately the identifier rather than the snapshot itself.
+    ///
+    /// Holding a captured `SensorSnapshot` would freeze this screen at the
+    /// state it had when it was pushed: granting or declining a permission
+    /// updates `store.snapshots`, and a plain `let` registers no observation
+    /// against it. The screen promises "you can decline, and this screen will
+    /// say so", and it has to actually be able to.
+    let sensorID: SensorID
     let store: SensorStore
 
     @State private var isRequesting = false
 
-    private var capability: Capability { snapshot.capability }
+    private var snapshot: SensorSnapshot? {
+        store.snapshots.first { $0.capability.id == sensorID }
+    }
+
+    private var capability: Capability? {
+        snapshot?.capability ?? CapabilityLedger[sensorID]
+    }
 
     var body: some View {
+        if let snapshot, let capability {
+            content(snapshot: snapshot, capability: capability)
+        } else {
+            ContentUnavailableView("Not found", systemImage: "questionmark.circle")
+        }
+    }
+
+    @ViewBuilder
+    private func content(snapshot: SensorSnapshot, capability: Capability) -> some View {
         List {
             Section {
                 Text(capability.reveals)
@@ -40,7 +62,7 @@ struct SensorDetailView: View {
                     Button {
                         isRequesting = true
                         Task {
-                            await store.requestAccess(to: capability.id)
+                            await store.requestAccess(to: sensorID)
                             isRequesting = false
                         }
                     } label: {
@@ -62,7 +84,7 @@ struct SensorDetailView: View {
                 LabeledContent("Framework", value: capability.framework)
                 LabeledContent("Asks permission", value: capability.promptsUser ? "Yes" : "No")
                 LabeledContent("Sensitivity", value: capability.sensitivity.rawValue.capitalized)
-                LabeledContent("Costs", value: tierDescription)
+                LabeledContent("Costs", value: tierDescription(capability))
 
                 if !capability.plistKeys.isEmpty {
                     ForEach(capability.plistKeys, id: \.self) { key in
@@ -79,7 +101,7 @@ struct SensorDetailView: View {
             }
 
             Section {
-                LabeledContent("In the Simulator", value: simulatorDescription)
+                LabeledContent("In the Simulator", value: simulatorDescription(capability))
                 LabeledContent("Verified", value: capability.verified.description)
                 Text(capability.source)
                     .font(.caption2)
@@ -103,7 +125,7 @@ struct SensorDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    private var tierDescription: String {
+    private func tierDescription(_ capability: Capability) -> String {
         switch capability.tier {
         case .free: "Nothing — a free Apple account can do this"
         case .paid: "$99/year developer program"
@@ -112,7 +134,7 @@ struct SensorDetailView: View {
         }
     }
 
-    private var simulatorDescription: String {
+    private func simulatorDescription(_ capability: Capability) -> String {
         switch capability.simulator {
         case .worksFully: "Works"
         case .worksWithCaveats: "Works, with caveats"

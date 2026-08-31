@@ -22,7 +22,76 @@ struct ProjectInvariantTests {
             at: base, includingPropertiesForKeys: nil
         ) else { return [] }
 
-        return enumerator.compactMap { $0 as? URL }.filter { $0.pathExtension == "swift" }
+        return enumerator.compactMap { $0 as? URL }
+            .filter { $0.pathExtension == "swift" }
+            // This file names every banned API in order to ban it. Scanning
+            // itself would be a guaranteed false positive.
+            .filter { $0.lastPathComponent != "InvariantTests.swift" }
+    }
+
+    /// Source with comments removed.
+    ///
+    /// The guard must judge code, not prose. Without this, documenting *why* an
+    /// API is forbidden — which is exactly where that explanation belongs —
+    /// trips the rule that forbids it.
+    /// Handles ordinary string literals, so that a `//` inside a URL is not
+    /// mistaken for the start of a comment. (Raw strings — `#"..."#` — are not
+    /// modelled; none appear in the scanned sources, and treating their
+    /// contents as code errs toward false positives, which is the safe
+    /// direction for a security guard.)
+    static func codeOnly(_ source: String) -> String {
+        var output = ""
+        var index = source.startIndex
+        var inBlockComment = false
+        var inString = false
+        var escaped = false
+
+        while index < source.endIndex {
+            let character = source[index]
+            let rest = source[index...]
+
+            if inBlockComment {
+                if rest.hasPrefix("*/") {
+                    inBlockComment = false
+                    index = source.index(index, offsetBy: 2)
+                } else {
+                    index = source.index(after: index)
+                }
+                continue
+            }
+
+            if inString {
+                output.append(character)
+                if escaped {
+                    escaped = false
+                } else if character == "\\" {
+                    escaped = true
+                } else if character == "\"" {
+                    inString = false
+                }
+                index = source.index(after: index)
+                continue
+            }
+
+            if rest.hasPrefix("/*") {
+                inBlockComment = true
+                index = source.index(index, offsetBy: 2)
+                continue
+            }
+
+            if rest.hasPrefix("//") {
+                while index < source.endIndex, source[index] != "\n" {
+                    index = source.index(after: index)
+                }
+                continue
+            }
+
+            if character == "\"" { inString = true }
+            output.append(character)
+            index = source.index(after: index)
+        }
+
+        return output
     }
 
     @Test("The test can actually see the source tree")
@@ -32,42 +101,87 @@ struct ProjectInvariantTests {
         #expect(sources.count > 10, "expected to find the source tree at \(Self.root.path)")
     }
 
+    /// APIs capable of moving bytes off the device.
+    ///
+    /// Note what is NOT here: `import Network` on its own. Banning the import
+    /// was a proxy for the wrong thing — `NWPathMonitor` observes the shape of
+    /// connectivity without opening a connection, and it is a capability the
+    /// app exists to demonstrate. What must not exist is *egress*, so the
+    /// egress types are banned instead, everywhere and without exception.
+    static let egressAPIs = [
+        "URLSession", "URLRequest", "NSURLConnection", "URLDownload",
+        "NWConnection", "NWListener", "NWBrowser",
+        "CFStream", "CFSocket", "CFNetwork",
+        "MultipeerConnectivity", "WKWebView", "SFSafariViewController",
+        "UIApplication.shared.open",
+    ]
+
+    /// APIs that can fetch a remote URL but are legitimately used on local
+    /// files. Allowed only in the named file, with the reason recorded.
+    static let localFileOnlyAPIs: [(token: String, allowedIn: String, reason: String)] = [
+        ("String(contentsOf:", "AttributionStore.swift",
+         "reads the user-chosen NDJSON from fileImporter, which yields file:// URLs only"),
+        ("Data(contentsOf:", "AttributionStore.swift",
+         "reads the persisted history from Application Support"),
+    ]
+
     @Test("Nothing in the project can reach the network")
     func noNetworkEgress() throws {
-        // Phase 1 has no network stack at all, so Phase 2 must add one
-        // deliberately rather than inherit an open port. See
-        // docs/phase-2-boundary.md.
-        let forbidden = [
-            "URLSession",
-            "URLRequest",
-            "import Network",
-            "NWConnection",
-            "NWBrowser",
-            "CFStream",
-            "Socket(",
-            "URLDownload",
-        ]
-
+        // The app promises, in its README, its threat model, and every
+        // permission dialog it shows, that nothing leaves the device. This is
+        // what makes that checkable. See docs/phase-2-boundary.md.
         var violations: [String] = []
 
-        for directory in ["Sources", "App"] {
+        // Scans the tool and the scripts too, not just shipping code: an
+        // exfiltration path in a build script is still an exfiltration path.
+        for directory in ["Sources", "App", "Tests"] {
             for file in Self.swiftFiles(under: directory) {
-                // NWPathMonitor is deliberately allowed: it observes what kind
-                // of connection exists without opening one, which is itself a
-                // capability worth demonstrating.
-                let contents = try String(contentsOf: file, encoding: .utf8)
+                let contents = Self.codeOnly(try String(contentsOf: file, encoding: .utf8))
                 let name = file.lastPathComponent
 
-                for token in forbidden where contents.contains(token) {
+                for token in Self.egressAPIs where contents.contains(token) {
                     violations.append("\(name): \(token)")
+                }
+
+                for entry in Self.localFileOnlyAPIs
+                where contents.contains(entry.token) && name != entry.allowedIn {
+                    violations.append("\(name): \(entry.token) (allowed only in \(entry.allowedIn))")
                 }
             }
         }
 
         #expect(violations.isEmpty, """
-            Network access found. Phase 1 must have no egress:
+            Network access found. This project must have no egress:
             \(violations.joined(separator: "\n"))
             """)
+    }
+
+    @Test("Only the path monitor may import Network")
+    func networkImportIsConfinedToOneFile() throws {
+        // NWPathMonitor needs the framework; nothing else does. Confining the
+        // import keeps the exemption visible instead of letting it spread.
+        var importers: [String] = []
+
+        for directory in ["Sources", "App", "Tests"] {
+            for file in Self.swiftFiles(under: directory) {
+                let contents = Self.codeOnly(try String(contentsOf: file, encoding: .utf8))
+                if contents.contains("import Network") {
+                    importers.append(file.lastPathComponent)
+                }
+            }
+        }
+
+        #expect(importers.sorted() == ["LiveNetworkPath.swift"],
+                "unexpected importers of Network: \(importers.sorted())")
+    }
+
+    @Test("The egress guard actually catches something")
+    func egressGuardIsNotVacuous() {
+        // Guards the guard. A typo in a path or a token list that never matches
+        // would make the check above pass silently forever.
+        let sample = "let task = URLSession.shared.dataTask(with: request)"
+        let caught = Self.egressAPIs.filter { sample.contains($0) }
+        #expect(caught == ["URLSession"])
     }
 
     @Test("There are no third-party dependencies")
@@ -90,7 +204,7 @@ struct ProjectInvariantTests {
 
         for directory in ["Sources", "App"] {
             for file in Self.swiftFiles(under: directory) {
-                let contents = try String(contentsOf: file, encoding: .utf8)
+                let contents = Self.codeOnly(try String(contentsOf: file, encoding: .utf8))
                 for token in forbidden where contents.contains(token) {
                     violations.append("\(file.lastPathComponent): \(token)")
                 }
@@ -156,5 +270,37 @@ struct ProjectInvariantTests {
         for pattern in ["*.ndjson", "captures/", "*.gpx", ".env", "*.mobileprovision", "*.p8"] {
             #expect(gitignore.contains(pattern), ".gitignore is missing '\(pattern)'")
         }
+    }
+}
+
+@Suite("The invariant scanner itself")
+struct InvariantScannerTests {
+    @Test("Comments are stripped, code is not")
+    func stripsComments() {
+        let source = """
+            // URLSession must never appear
+            let a = 1
+            /* NWConnection is banned
+               across multiple lines */
+            let b = URLSession.shared
+            """
+        let code = ProjectInvariantTests.codeOnly(source)
+
+        #expect(!code.contains("must never appear"))
+        #expect(!code.contains("NWConnection"))
+        #expect(code.contains("let a = 1"))
+        // The real usage on the last line must survive, or the guard is blind.
+        #expect(code.contains("URLSession.shared"))
+    }
+
+    @Test("A URL inside a string literal is not mistaken for a comment")
+    func doesNotEatStringContents() {
+        // Without string-literal awareness the "//" in a URL truncates the rest
+        // of the line, which could hide a real call sitting after it.
+        let source = "let s = \"https://example.com/path\"\nlet t = URLSession.shared"
+        let code = ProjectInvariantTests.codeOnly(source)
+
+        #expect(code.contains("example.com"))
+        #expect(code.contains("URLSession.shared"), "code after a URL literal must survive")
     }
 }

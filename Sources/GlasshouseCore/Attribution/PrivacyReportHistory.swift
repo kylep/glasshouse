@@ -5,24 +5,54 @@
 /// of this type is to build a history that outlives the window by merging
 /// repeated imports without double-counting the overlap.
 public struct PrivacyReportHistory: Sendable, Hashable, Codable {
-    /// Deduplicated by value: the same app touching the same resource over the
-    /// same interval is the same event, however many times it is imported.
-    public private(set) var accesses: Set<ResourceAccess>
+    /// Keyed on the identity of the underlying event — which app, which
+    /// resource, starting when — rather than on the whole value.
+    ///
+    /// This matters because the same real access can arrive twice in different
+    /// shapes. Week one's export catches it mid-flight and reports no end time;
+    /// week two's export contains the same access, now finished, with one. As
+    /// distinct values those would both survive a set union, and the same event
+    /// would be counted twice — exactly the inflation this type exists to
+    /// prevent.
+    private var accessesByEvent: [AccessKey: ResourceAccess]
 
     private var contactsByKey: [String: NetworkContact]
 
+    private struct AccessKey: Hashable, Codable, Sendable {
+        let bundleID: String
+        let resource: AccessedResource
+        let began: Double
+    }
+
     public init() {
-        accesses = []
+        accessesByEvent = [:]
         contactsByKey = [:]
     }
 
+    public var accesses: Set<ResourceAccess> {
+        Set(accessesByEvent.values)
+    }
+
     public var contacts: [NetworkContact] {
-        contactsByKey.values.sorted { $0.hits > $1.hits }
+        contactsByKey.values.sorted { ($0.hits, $1.domain) > ($1.hits, $0.domain) }
     }
 
     /// Folds an import in, merging rather than appending.
     public mutating func merge(_ report: PrivacyReportImport) {
-        accesses.formUnion(report.accesses)
+        for access in report.accesses {
+            let key = AccessKey(bundleID: access.bundleID, resource: access.resource, began: access.began)
+
+            guard let existing = accessesByEvent[key] else {
+                accessesByEvent[key] = access
+                continue
+            }
+
+            // A later import that completes a previously open interval is an
+            // upgrade, not a new event. Prefer the version with a known end.
+            if existing.ended == nil, access.ended != nil {
+                accessesByEvent[key] = access
+            }
+        }
 
         for contact in report.contacts {
             let key = "\(contact.bundleID)|\(contact.domain)"
@@ -111,5 +141,5 @@ public struct PrivacyReportHistory: Sendable, Hashable, Codable {
             .sorted { ($0.resource.sensitivity, $1.bundleID) > ($1.resource.sensitivity, $0.bundleID) }
     }
 
-    public var isEmpty: Bool { accesses.isEmpty && contactsByKey.isEmpty }
+    public var isEmpty: Bool { accessesByEvent.isEmpty && contactsByKey.isEmpty }
 }

@@ -59,25 +59,57 @@ struct UsageDescriptionTests {
 
 @Suite("Generated build inputs")
 struct GeneratedBuildInputTests {
-    @Test("The plist key set is exactly what the reachable ledger requires")
+    @Test("The generated plist contains these exact keys for a free build")
     func plistMatchesLedger() {
-        let required = Set(CapabilityLedger.requiredPlistKeys(for: .free))
-        let reachable = CapabilityLedger.reachable(with: .free)
-        let expected = Set(reachable.flatMap(\.plistKeys))
-
-        #expect(required == expected)
-
-        // And nothing from an unreachable tier leaks in.
-        for row in CapabilityLedger.all where !row.isReachable(with: .free) {
-            for key in row.plistKeys where !expected.contains(key) {
-                #expect(!required.contains(key), "'\(key)' leaked from unreachable '\(row.id)'")
-            }
-        }
+        // Pinned literally rather than recomputed from the ledger. Deriving the
+        // expectation the same way the implementation does would assert only
+        // that a function equals itself; this fails if a capability's keys
+        // change, which is the thing worth catching.
+        #expect(Set(CapabilityLedger.requiredPlistKeys(for: .free)) == [
+            "NSBluetoothAlwaysUsageDescription",
+            "NSCalendarsFullAccessUsageDescription",
+            "NSCalendarsWriteOnlyAccessUsageDescription",
+            "NSCameraUsageDescription",
+            "NSContactsUsageDescription",
+            "NSHealthShareUsageDescription",
+            "NSLocalNetworkUsageDescription",
+            "NSLocationAlwaysAndWhenInUseUsageDescription",
+            "NSLocationTemporaryUsageDescriptionDictionary",
+            "NSLocationWhenInUseUsageDescription",
+            "NSMicrophoneUsageDescription",
+            "NSMotionUsageDescription",
+            "NSNearbyInteractionUsageDescription",
+            "NSPhotoLibraryUsageDescription",
+            "NSRemindersFullAccessUsageDescription",
+            "NSSpeechRecognitionUsageDescription",
+        ])
     }
 
-    @Test("Adding a capability with an undescribed key would fail the build")
+    @Test("Keys belonging only to paid capabilities never reach a free build")
+    func paidKeysDoNotLeak() {
+        let free = Set(CapabilityLedger.requiredPlistKeys(for: .free))
+
+        // These appear in the ledger, on rows above the free tier. If tier
+        // filtering broke, they would silently start shipping.
+        #expect(!free.contains("NFCReaderUsageDescription"))
+        #expect(!free.contains("NSFocusStatusUsageDescription"))
+        #expect(!free.contains("NSSensorKitUsageDescription"))
+        #expect(!free.contains("NSHealthClinicalHealthRecordsShareUsageDescription"))
+
+        // ...and they really are present at a higher tier, so the assertions
+        // above are testing filtering rather than absence.
+        let everything = Set(CapabilityLedger.requiredPlistKeys(for: .unobtainable))
+        #expect(everything.isSuperset(of: [
+            "NFCReaderUsageDescription", "NSFocusStatusUsageDescription",
+            "NSSensorKitUsageDescription",
+        ]))
+    }
+
+    @Test("A capability with an undescribed key is caught by the real guard")
     func mismatchIsDetected() {
-        // Proves the guard actually fires, rather than trusting that it would.
+        // Calls UsageDescriptions.missing itself, so deleting that function
+        // fails this test. The previous version reimplemented the check inline
+        // and would have passed with the guard removed entirely.
         let invented = Capability(
             id: "test.invented",
             displayName: "Invented",
@@ -91,9 +123,9 @@ struct GeneratedBuildInputTests {
             verified: "2026-08-30"
         )
 
-        let keys = Set([invented].flatMap(\.plistKeys))
-        let undescribed = keys.filter { UsageDescriptions.byKey[$0] == nil }
-        #expect(undescribed == ["NSCompletelyUndescribedUsageDescription"])
+        #expect(UsageDescriptions.missing(in: [invented]) == ["NSCompletelyUndescribedUsageDescription"])
+        // And a row whose keys ARE described comes back clean.
+        #expect(UsageDescriptions.missing(in: CapabilityLedger.reachable(with: .free)).isEmpty)
     }
 
     @Test("The ledger's own consistency check catches an authoring mistake")

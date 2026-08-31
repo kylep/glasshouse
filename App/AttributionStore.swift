@@ -50,6 +50,20 @@ final class AttributionStore {
 
         history.merge(result)
         save()
+
+        // A recognised file can still be mostly undecodable — a schema that has
+        // shifted under us, or a partially written export. Reporting only the
+        // unrecognised-format case would let 500 failed lines out of 501 import
+        // "successfully". The decoder records every failure; the UI has to show
+        // them or the guarantee is only half kept.
+        if !result.failures.isEmpty {
+            let lines = result.failures.prefix(3).map { "line \($0.line): \($0.reason)" }
+            importError = """
+                Imported \(result.accesses.count + result.contacts.count) records, \
+                but \(result.failures.count) line\(result.failures.count == 1 ? "" : "s") \
+                couldn't be read — \(lines.joined(separator: "; "))
+                """
+        }
     }
 
     // MARK: - Persistence

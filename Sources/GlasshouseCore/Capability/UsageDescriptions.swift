@@ -82,7 +82,16 @@ public enum UsageDescriptions {
     /// A non-empty result is a build-blocking authoring gap: iOS shows an empty
     /// dialog, or crashes outright, when a key is missing its string.
     public static func missing(for tier: SigningTier) -> [String] {
-        CapabilityLedger.requiredPlistKeys(for: tier).filter { byKey[$0] == nil }.sorted()
+        missing(in: CapabilityLedger.reachable(with: tier))
+    }
+
+    /// The same check over an arbitrary set of rows.
+    ///
+    /// Exists so the guard can be tested against a deliberately broken row.
+    /// Testing it only against the real ledger proves the ledger is currently
+    /// fine, not that the check would catch anything.
+    public static func missing(in rows: [Capability]) -> [String] {
+        Set(rows.flatMap(\.plistKeys)).filter { byKey[$0] == nil }.sorted()
     }
 
     /// Descriptions written for keys no capability actually requires. Harmless

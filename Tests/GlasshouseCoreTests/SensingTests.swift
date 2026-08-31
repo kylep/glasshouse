@@ -217,37 +217,57 @@ struct SensorSnapshotTests {
 
 @Suite("Ledger-consistent fakes")
 struct LedgerConsistentFakesTests {
-    @Test("Simulator fakes agree with the ledger's measured behaviour")
-    func fakesMatchTheLedger() async {
-        let registry = LedgerConsistentFakes.registry(for: .simulator)
-        let snapshots = await registry.snapshotAll()
+    @Test("A source that contradicts the ledger IS flagged as an anomaly")
+    func contradictingTheLedgerIsDetected() async {
+        // The real test of the anomaly detector. The previous pair of tests
+        // asserted that the fake generator agrees with the rule the fake
+        // generator was written from — neither could fail. This one builds a
+        // source that lies, and checks it gets caught.
+        //
+        // core_motion.accelerometer is measured as returning nothing in a
+        // Simulator, so a source claiming to be ready and then reporting
+        // nothing is exactly the "working code that found nothing" case.
+        let liar = FakeSensorSource.quiet("core_motion.accelerometer")
+        let registry = SensorRegistry([liar])
 
-        for snapshot in snapshots where snapshot.capability.simulator.silenceIsExpected {
-            #expect(
-                !snapshot.availability.canRead,
-                "'\(snapshot.capability.id)' claims to read in a Simulator, but the ledger says it returns nothing"
-            )
-        }
+        let snapshot = await registry.snapshot("core_motion.accelerometer")
+        #expect(snapshot?.availability == .ready)
+        #expect(snapshot?.hasReading == false)
+        #expect(snapshot?.isUnexplainedSilence == true,
+                "a sensor claiming readiness and reporting nothing must be flagged")
     }
 
-    @Test("Nothing is unexplainedly silent when fakes follow the ledger")
-    func noAnomalies() async {
-        // If this fails, the fakes and the ledger have drifted apart — which is
-        // exactly the drift the registry exists to make impossible.
-        let registry = LedgerConsistentFakes.registry(for: .simulator)
-        let snapshots = await registry.snapshotAll()
-        let anomalies = snapshots.unexplained.map(\.capability.id)
-        #expect(anomalies.isEmpty, "unexplained: \(anomalies.map(\.rawValue).joined(separator: ", "))")
+    @Test("An honest unavailable source is not flagged")
+    func honestSilenceIsNotAnomalous() async {
+        // The other half: silence WITH a stated reason must not be an anomaly,
+        // or the detector would cry wolf on the whole ledger in a Simulator.
+        let honest = FakeSensorSource.missingInSimulator("core_motion.accelerometer")
+        let snapshot = await SensorRegistry([honest]).snapshot("core_motion.accelerometer")
+
+        #expect(snapshot?.isUnexplainedSilence == false)
+        #expect(snapshot?.silenceIsExpected == true)
     }
 
-    @Test("On a device, capabilities that only fail in a simulator become readable")
+    @Test("The device environment makes strictly more capabilities available")
     func deviceEnvironmentDiffers() async {
+        // Compares the SAME predicate on both sides. The earlier version
+        // counted an extra state on the device side only, so it would have
+        // passed even for two identical registries.
         let simulator = LedgerConsistentFakes.registry(for: .simulator)
         let device = LedgerConsistentFakes.registry(for: .device)
 
-        let simReadable = await simulator.snapshotAll().filter { $0.availability.canRead }.count
-        let deviceReadable = await device.snapshotAll().filter { $0.availability.canRead || $0.availability == .needsPermission }.count
+        func reachable(_ registry: SensorRegistry) async -> Set<SensorID> {
+            let snapshots = await registry.snapshotAll()
+            return Set(snapshots.filter { $0.availability != .unavailable(reason: .simulator) }
+                .map(\.capability.id))
+        }
 
-        #expect(deviceReadable > simReadable)
+        let simIDs = await reachable(simulator)
+        let deviceIDs = await reachable(device)
+
+        #expect(deviceIDs.isStrictSuperset(of: simIDs))
+        // And specifically: Core Motion is dead in a Simulator and alive on a device.
+        #expect(!simIDs.contains("core_motion.accelerometer"))
+        #expect(deviceIDs.contains("core_motion.accelerometer"))
     }
 }

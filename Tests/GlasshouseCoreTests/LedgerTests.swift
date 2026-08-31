@@ -143,11 +143,16 @@ struct LedgerSliceTests {
         #expect(!silent.contains("health.vitals"))
     }
 
-    @Test("Silence and prompting partition the ledger")
-    func silentAndPromptingArePartitions() {
+    @Test("A meaningful share of the ledger reads without asking")
+    func silentSetIsSubstantial() {
+        // The previous version of this test asserted that silent + prompting
+        // == total, which is just "a Bool is true or false" — it passed for an
+        // empty ledger and for an inverted one. This pins the actual claim the
+        // app makes on its front screen.
         let silent = CapabilityLedger.silent.count
-        let prompting = CapabilityLedger.all.filter(\.promptsUser).count
-        #expect(silent + prompting == CapabilityLedger.all.count)
+        #expect(silent >= 15, "only \(silent) capabilities read without a prompt")
+        #expect(silent < CapabilityLedger.all.count / 2,
+                "most capabilities should still be behind a permission")
     }
 
     @Test("Required plist keys cover the free tier and exclude paid-only ones")

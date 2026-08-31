@@ -60,16 +60,52 @@ struct PrivacyReportDecoderTests {
         #expect(location?.duration == nil)
     }
 
-    @Test("An interval end with no beginning is kept as a point event")
+    @Test("An interval end with no beginning has an unknown duration, not zero")
     func orphanedEnd() {
-        // The access started before the 7-day window opened. Real, and worth
-        // keeping rather than treating as corrupt.
+        // The access started before the 7-day window opened, so how long it ran
+        // is unknown. Recording began == ended would claim an app used the
+        // camera for 0 seconds, which is a fabrication in an app whose whole
+        // principle is that under-reporting must be visible rather than invented.
         let orphan = """
             {"accessor":{"identifier":"com.example.app","identifierType":"bundleID"},"category":"camera","identifier":"X-1","kind":"intervalEnd","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
             """
         let result = decoder.decode(orphan)
+
         #expect(result.accesses.count == 1)
         #expect(result.failures.isEmpty)
+        #expect(result.accesses[0].duration == nil)
+        #expect(result.accesses[0].wasOngoing)
+    }
+
+    @Test("A duplicate intervalBegin is reported, and the displaced one survives")
+    func duplicateBegin() {
+        // Two begins for one UUID means one can never be paired. Overwriting it
+        // silently would drop a real access, and this decoder does not do that.
+        let doubled = """
+            {"accessor":{"identifier":"com.example.a","identifierType":"bundleID"},"category":"camera","identifier":"D-1","kind":"intervalBegin","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
+            {"accessor":{"identifier":"com.example.a","identifierType":"bundleID"},"category":"camera","identifier":"D-1","kind":"intervalBegin","timeStamp":"2026-08-20T11:00:00.000-04:00","type":"access"}
+            """
+        let result = decoder.decode(doubled)
+
+        #expect(result.accesses.count == 2, "the displaced begin must not vanish")
+        #expect(result.failures.count == 1)
+        #expect(result.failures[0].reason.contains("duplicate"))
+    }
+
+    @Test("Decoding the same input twice gives byte-identical output")
+    func decodingIsDeterministic() {
+        // Leftover open intervals are flushed from a Dictionary, whose iteration
+        // order varies between processes, and `sorted` is not stable. Both are
+        // pinned so the output is reproducible.
+        let multiple = """
+            {"accessor":{"identifier":"com.b","identifierType":"bundleID"},"category":"camera","identifier":"1","kind":"intervalBegin","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
+            {"accessor":{"identifier":"com.a","identifierType":"bundleID"},"category":"photos","identifier":"2","kind":"intervalBegin","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
+            {"accessor":{"identifier":"com.c","identifierType":"bundleID"},"category":"contacts","identifier":"3","kind":"intervalBegin","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
+            """
+        let first = decoder.decode(multiple).accesses
+        for _ in 0..<5 {
+            #expect(decoder.decode(multiple).accesses == first)
+        }
     }
 
     @Test("Network records carry Apple's own tracker flag")
@@ -168,8 +204,6 @@ struct PrivacyReportHistoryTests {
 
     @Test("Re-importing the same export does not duplicate anything")
     func mergingIsIdempotent() {
-        // The user will re-import weekly, and windows overlap. Double-counting
-        // would inflate claims about other people's apps.
         var history = PrivacyReportHistory()
         let report = decoder.decode(Fixtures.v4)
 
@@ -179,6 +213,54 @@ struct PrivacyReportHistoryTests {
 
         #expect(history.accesses.count == afterFirst)
         #expect(history.contacts.count == 2)
+    }
+
+    @Test("An access seen open, then later seen completed, stays one event")
+    func openIntervalIsUpgradedNotDuplicated() {
+        // The realistic weekly-import case, and the one a plain set union gets
+        // wrong. Week one catches the access mid-flight with no end time; week
+        // two has the same access, finished. Those are different values, so a
+        // set would keep both and count one real event twice.
+        var history = PrivacyReportHistory()
+
+        let weekOne = """
+            {"accessor":{"identifier":"com.example.chat","identifierType":"bundleID"},"category":"microphone","identifier":"M-1","kind":"intervalBegin","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
+            """
+        let weekTwo = """
+            {"accessor":{"identifier":"com.example.chat","identifierType":"bundleID"},"category":"microphone","identifier":"M-1","kind":"intervalBegin","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
+            {"accessor":{"identifier":"com.example.chat","identifierType":"bundleID"},"category":"microphone","identifier":"M-1","kind":"intervalEnd","timeStamp":"2026-08-20T10:00:45.000-04:00","type":"access"}
+            """
+
+        history.merge(decoder.decode(weekOne))
+        #expect(history.accesses.count == 1)
+        #expect(history.accesses.first?.wasOngoing == true)
+
+        history.merge(decoder.decode(weekTwo))
+
+        #expect(history.accesses.count == 1, "the completed access must replace the open one, not join it")
+        #expect(history.accesses.first?.duration == 45)
+        #expect(history.apps(touching: .microphone)[0].times == 1)
+    }
+
+    @Test("Merging in the other order keeps the completed version")
+    func completedIsNotDowngraded() {
+        // Imports do not arrive in a guaranteed order, so the reconciliation
+        // must not lose a known end time by merging an older export afterwards.
+        var history = PrivacyReportHistory()
+
+        let completed = """
+            {"accessor":{"identifier":"com.a","identifierType":"bundleID"},"category":"camera","identifier":"C-1","kind":"intervalBegin","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
+            {"accessor":{"identifier":"com.a","identifierType":"bundleID"},"category":"camera","identifier":"C-1","kind":"intervalEnd","timeStamp":"2026-08-20T10:00:10.000-04:00","type":"access"}
+            """
+        let stillOpen = """
+            {"accessor":{"identifier":"com.a","identifierType":"bundleID"},"category":"camera","identifier":"C-1","kind":"intervalBegin","timeStamp":"2026-08-20T10:00:00.000-04:00","type":"access"}
+            """
+
+        history.merge(decoder.decode(completed))
+        history.merge(decoder.decode(stillOpen))
+
+        #expect(history.accesses.count == 1)
+        #expect(history.accesses.first?.duration == 10, "a later, less complete import must not erase a known end")
     }
 
     @Test("History accumulates across schema versions")

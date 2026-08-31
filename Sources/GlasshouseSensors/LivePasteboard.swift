@@ -71,6 +71,17 @@ public struct LivePasteboardShapeSource: SensorSource {
     }
 }
 
+/// Whether the user has asked to see the notifying clipboard read.
+///
+/// Deliberately app-level rather than a system permission: iOS imposes no gate
+/// here at all, so declining to read until asked is the app's own choice.
+@MainActor
+final class PasteboardConsent {
+    static let shared = PasteboardConsent()
+    var granted = false
+    private init() {}
+}
+
 /// Reads the actual clipboard contents — and this one does notify you.
 ///
 /// Deliberately never read automatically. The app must only invoke this when
@@ -80,21 +91,25 @@ public struct LivePasteboardShapeSource: SensorSource {
 public struct LivePasteboardContentSource: SensorSource {
     public let id: SensorID = "pasteboard.contents"
 
-    /// Whether the user has explicitly asked for the notifying read.
-    private let userRequested: Bool
-
-    public init(userRequested: Bool = false) {
-        self.userRequested = userRequested
-    }
+    public init() {}
 
     public func availability() async -> SensorAvailability {
         // Not "unavailable" in a technical sense — this is a deliberate refusal
-        // to read personal data the user has not asked us to touch.
-        userRequested ? .ready : .needsPermission
+        // to read personal data the user has not asked us to touch. iOS would
+        // happily allow it; the app declines until asked.
+        await PasteboardConsent.shared.granted ? .ready : .needsPermission
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        // The only "permission" here is the user's own instruction. Granting it
+        // is what makes the notifying read available for comparison against the
+        // silent one — which is the entire point of having both.
+        await MainActor.run { PasteboardConsent.shared.granted = true }
+        return .ready
     }
 
     public func read() async -> SensorSample? {
-        guard userRequested else { return nil }
+        guard await PasteboardConsent.shared.granted else { return nil }
 
         return await MainActor.run {
             let board = UIPasteboard.general

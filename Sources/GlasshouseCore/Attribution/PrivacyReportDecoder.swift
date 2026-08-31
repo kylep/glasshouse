@@ -77,7 +77,10 @@ public struct PrivacyReportDecoder: Sendable {
 
         // Intervals still open when the export was taken are expected: the
         // report is a snapshot, and an app may have been mid-access.
-        for (_, open) in openIntervals {
+        // Sorted by key first, because dictionary iteration order varies
+        // between processes and the output must be reproducible.
+        for key in openIntervals.keys.sorted() {
+            guard let open = openIntervals[key] else { continue }
             accesses.append(ResourceAccess(
                 bundleID: open.bundleID, resource: open.resource,
                 began: open.began, ended: nil
@@ -85,8 +88,15 @@ public struct PrivacyReportDecoder: Sendable {
         }
 
         return PrivacyReportImport(
-            accesses: accesses.sorted { $0.began < $1.began },
-            contacts: contacts.sorted { $0.lastSeen < $1.lastSeen },
+            // `sorted(by:)` is not stable, so ties are broken explicitly rather
+            // than left to vary between runs.
+            accesses: accesses.sorted {
+                ($0.began, $0.bundleID, $0.resource.rawValue)
+                    < ($1.began, $1.bundleID, $1.resource.rawValue)
+            },
+            contacts: contacts.sorted {
+                ($0.lastSeen, $0.bundleID, $0.domain) < ($1.lastSeen, $1.bundleID, $1.domain)
+            },
             failures: failures,
             schema: detected ?? .unknown
         )
@@ -140,6 +150,18 @@ public struct PrivacyReportDecoder: Sendable {
 
             switch object["kind"] as? String {
             case "intervalBegin":
+                // Two begins for one UUID means one of them can never be
+                // paired. Overwriting silently would drop a real access, which
+                // this decoder does not do.
+                if let displaced = openIntervals[key] {
+                    failures.append(DecodingFailure(
+                        line: line,
+                        reason: "duplicate intervalBegin for '\(key)'; the earlier one is unpairable"
+                    ))
+                    accesses.append(ResourceAccess(bundleID: displaced.bundleID,
+                                                   resource: displaced.resource,
+                                                   began: displaced.began, ended: nil))
+                }
                 openIntervals[key] = (bundleID, resource, timestamp)
             case "intervalEnd":
                 if let open = openIntervals.removeValue(forKey: key) {
@@ -147,9 +169,13 @@ public struct PrivacyReportDecoder: Sendable {
                                                    began: open.began, ended: timestamp))
                 } else {
                     // An end with no beginning: the access started before the
-                    // window opened. Real, and worth keeping.
+                    // window opened, so its duration is UNKNOWN rather than
+                    // zero. Encoding it as `began == ended` would silently
+                    // claim an app used your microphone for 0 seconds. `nil`
+                    // is the same encoding used for an interval still open at
+                    // the other edge, and for the same reason.
                     accesses.append(ResourceAccess(bundleID: bundleID, resource: resource,
-                                                   began: timestamp, ended: timestamp))
+                                                   began: timestamp, ended: nil))
                 }
             default:
                 accesses.append(ResourceAccess(bundleID: bundleID, resource: resource,

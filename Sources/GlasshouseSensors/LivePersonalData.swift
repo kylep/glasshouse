@@ -53,8 +53,9 @@ public struct LiveContactsSource: SensorSource {
             if !contact.organizationName.isEmpty { organisations += 1 }
         }
 
-        guard people > 0 else { return nil }
-
+        // An authorised but empty address book is a real answer — "you have 0
+        // contacts" — not silence. Returning nil here would file it as an
+        // unexplained anomaly.
         return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
             SensorField("People", .integer(people)),
             SensorField("Phone numbers", .integer(phones)),
@@ -141,8 +142,12 @@ public struct LiveCalendarSource: SensorSource {
         case .restricted: .restricted
         case .fullAccess: .ready
         // Write-only genuinely reads nothing back, including events this app
-        // created itself — so it is not partial access, it is no read access.
-        case .writeOnly: .limited
+        // created itself. That is no read access, not partial read access, so
+        // it maps to `.denied`. Mapping it to `.limited` would make the app
+        // claim partial data, show none, and then flag itself as broken —
+        // `.limited.canRead` is true, so the registry would call `read()`,
+        // which returns nil, which reads as an unexplained anomaly forever.
+        case .writeOnly: .denied
         @unknown default: .needsPermission
         }
     }
@@ -182,12 +187,30 @@ public struct LiveRemindersSource: SensorSource {
         let lists = store.calendars(for: .reminder)
         let predicate = store.predicateForReminders(in: nil)
 
-        // EKReminder is not Sendable, so the objects themselves must not cross
-        // the continuation. Reduce to plain counts inside the callback instead.
-        let tally: ReminderTally = await withCheckedContinuation { continuation in
-            store.fetchReminders(matching: predicate) { reminders in
+        // Two hazards handled here.
+        //
+        // EKReminder is not Sendable, so the objects must not cross the
+        // continuation — they are reduced to plain counts inside the callback.
+        //
+        // And the store must outlive the query. `store` is a local, so without
+        // the explicit capture below it is released the moment this function
+        // returns, and the completion handler may then never fire — hanging
+        // this read, and with it the whole sensor refresh.
+        // The timeout is raised inside the continuation rather than by wrapping
+        // it: `withTimeout` takes a `@Sendable` closure, and neither
+        // `EKEventStore` nor `NSPredicate` is Sendable, so they cannot be
+        // captured across that boundary.
+        let tally: ReminderTally? = await withCheckedContinuation { continuation in
+            let once = SingleResume(continuation)
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(5))
+                once.resume(nil)
+            }
+
+            store.fetchReminders(matching: predicate) { [store] reminders in
                 let reminders = reminders ?? []
-                continuation.resume(returning: ReminderTally(
+                once.resume(ReminderTally(
                     total: reminders.count,
                     completed: reminders.filter(\.isCompleted).count,
                     withAlarms: reminders.filter { !($0.alarms ?? []).isEmpty }.count,
@@ -195,8 +218,11 @@ public struct LiveRemindersSource: SensorSource {
                         ($0.alarms ?? []).contains { $0.structuredLocation != nil }
                     }.count
                 ))
+                withExtendedLifetime(store) {}
             }
         }
+
+        guard let tally else { return nil }
 
         return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
             SensorField("Lists", .integer(lists.count)),

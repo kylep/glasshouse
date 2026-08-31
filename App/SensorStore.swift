@@ -43,8 +43,15 @@ final class SensorStore {
         snapshots.filter { $0.hasReading && $0.capability.promptsUser }
     }
 
+    /// Sensors that could report something, once asked.
+    ///
+    /// Keyed on runtime availability rather than on the ledger's `promptsUser`
+    /// flag. Those come apart: reading the clipboard's contents raises no system
+    /// dialog, so `promptsUser` is false, but the app still declines to do it
+    /// until the user asks. Filtering on the flag hid that row from every
+    /// section and made it unreachable in the UI.
     var awaitingPermission: [SensorSnapshot] {
-        snapshots.filter { $0.availability == .needsPermission && $0.capability.promptsUser }
+        snapshots.filter { $0.availability == .needsPermission }
     }
 
     var unavailableHere: [SensorSnapshot] {

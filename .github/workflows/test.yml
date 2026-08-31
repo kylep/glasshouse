@@ -1,0 +1,71 @@
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # The fast loop. Everything with behaviour lives in GlasshouseCore, which
+  # imports no Apple sensor framework and so builds and tests on macOS in
+  # seconds — no simulator, no signing, no Xcode project.
+  #
+  # This job also enforces the project's privacy claims: InvariantTests scans
+  # the source tree and fails on network access, third-party dependencies,
+  # analytics SDKs, or a sensor framework imported into the portable core.
+  unit:
+    name: Unit tests
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: swift --version
+
+      - name: Test
+        run: swift test
+
+  # The gate. Proves the app target still links and builds for iOS, and that
+  # Info.plist generation from the capability ledger still succeeds — a
+  # capability with no declared purpose string fails this step, by design.
+  simulator:
+    name: iOS build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: brew install xcodegen xcbeautify
+
+      - name: Generate Info.plist and project from the ledger
+        run: ./scripts/bootstrap.sh
+
+      - name: Fail if generated docs are stale
+        # The ledger generates docs/device-verification.md and
+        # docs/data-classification.md, and those are committed so they can be
+        # read on GitHub. If bootstrap.sh changed them, someone edited the
+        # ledger without regenerating.
+        run: |
+          if ! git diff --quiet -- docs/; then
+            echo "::error::Generated docs are out of date. Run scripts/bootstrap.sh and commit the result."
+            git diff --stat -- docs/
+            exit 1
+          fi
+
+      - name: Build for the Simulator
+        # A generic destination rather than a named device: which simulators
+        # exist depends on the runner image's Xcode, and pinning a device name
+        # makes the build fail for reasons unrelated to the code.
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project Glasshouse.xcodeproj \
+            -scheme Glasshouse \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify

@@ -81,10 +81,20 @@ ledger and enforced by tests, rather than discovered at runtime.
 
 ## Privacy
 
-Everything stays on the device. There is no network stack, no analytics, no
-crash reporting, and no third-party dependencies — and `InvariantTests` scans
-the source tree and fails the build if any of that changes. A claim about
-privacy that isn't enforced is just marketing.
+Everything stays on the device. There is no egress, no analytics, no crash
+reporting, and no third-party dependencies.
+
+`InvariantTests` enforces this rather than leaving it to good intentions: it
+strips comments from every Swift file and fails the build on any known egress
+API, any third-party dependency, or any analytics SDK. Two carve-outs are
+explicit and tested — `NWPathMonitor`, which observes connectivity without
+opening a connection, may be imported by exactly one file; and
+`String(contentsOf:)`, used on file URLs from the document picker, is confined
+to `AttributionStore`.
+
+Being honest about the limit: this is a blocklist of names, not a proof. It
+catches the ways egress normally arrives and would not catch a determined
+attempt to hide one.
 
 - [`docs/threat-model.md`](docs/threat-model.md) — assets, adversaries, and the
   trust boundary. The most likely breach of this repository is a real sensor

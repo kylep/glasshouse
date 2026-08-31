@@ -5,17 +5,22 @@ import GlasshouseCore
 
 /// Holds the one `CLLocationManager` the app needs.
 ///
-/// A manager has to outlive a single read: authorization callbacks arrive on it,
-/// and a freshly created manager has no cached location to report. It is
-/// `@MainActor` because `CLLocationManager` is not `Sendable`.
+/// A manager has to outlive a single read: authorization and location callbacks
+/// arrive on it, and a freshly created manager has no cached fix to report. It
+/// is `@MainActor` because `CLLocationManager` is not `Sendable`.
 @MainActor
 final class LocationManagerBox: NSObject, CLLocationManagerDelegate {
     static let shared = LocationManagerBox()
 
     let manager = CLLocationManager()
-    private var authorizationContinuations: [CheckedContinuation<CLAuthorizationStatus, Never>] = []
 
-    override init() {
+    fileprivate var authorizationWaiters: [SingleResume<CLAuthorizationStatus>] = []
+    fileprivate var fixWaiters: [SingleResume<CLLocation>] = []
+    fileprivate var headingWaiters: [SingleResume<Bool>] = []
+
+    /// Private so nobody creates a second manager whose delegate callbacks
+    /// would resume none of the waiters above.
+    private override init() {
         super.init()
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
@@ -23,39 +28,151 @@ final class LocationManagerBox: NSObject, CLLocationManagerDelegate {
 
     var status: CLAuthorizationStatus { manager.authorizationStatus }
     var accuracy: CLAccuracyAuthorization { manager.accuracyAuthorization }
-    var lastLocation: CLLocation? { manager.location }
+    var isAuthorized: Bool { status == .authorizedWhenInUse || status == .authorizedAlways }
 
-    /// Requests when-in-use access and waits for the user's answer.
-    func requestWhenInUse() async -> CLAuthorizationStatus {
+    /// Requests when-in-use access and waits for an answer.
+    ///
+    /// Bounded, because the user may background the app with the dialog open,
+    /// or the dialog may be suppressed entirely — by Screen Time, or by a build
+    /// missing its usage-description key. An unbounded wait there leaves the
+    /// requesting UI spinning for the life of the process.
+    func requestWhenInUse(timeout: Double = 60) async -> CLAuthorizationStatus {
         guard status == .notDetermined else { return status }
-        return await withCheckedContinuation { continuation in
-            authorizationContinuations.append(continuation)
-            manager.requestWhenInUseAuthorization()
-        }
+
+        let answered = await withTimeout(seconds: timeout) {
+            await withCheckedContinuation { (continuation: CheckedContinuation<CLAuthorizationStatus?, Never>) in
+                let once = SingleResume(continuation)
+                Task { @MainActor in
+                    let box = LocationManagerBox.shared
+                    box.authorizationWaiters.append(once)
+                    box.manager.requestWhenInUseAuthorization()
+                }
+            }
+        } ?? nil
+
+        return answered ?? status
     }
 
-    /// Asks for a single fresh fix. Returns the cached one if none arrives.
-    func requestFix() {
-        guard status == .authorizedWhenInUse || status == .authorizedAlways else { return }
-        manager.requestLocation()
+    /// Asks for a fresh fix and waits for it, rather than reading whatever
+    /// happened to be cached.
+    ///
+    /// `requestLocation()` is asynchronous: the fix arrives via the delegate.
+    /// Reading `manager.location` immediately after calling it returns nil on a
+    /// newly authorized manager, so the first read after granting permission
+    /// would always come back empty.
+    func requestFix(timeout: Double = 10) async -> CLLocation? {
+        guard isAuthorized else { return nil }
+
+        // A recent cached fix is a perfectly good answer and avoids waking the
+        // radio unnecessarily.
+        if let cached = manager.location, Date().timeIntervalSince(cached.timestamp) < 30 {
+            return cached
+        }
+
+        let fix = await withTimeout(seconds: timeout) {
+            await withCheckedContinuation { (continuation: CheckedContinuation<CLLocation?, Never>) in
+                let once = SingleResume(continuation)
+                Task { @MainActor in
+                    let box = LocationManagerBox.shared
+                    box.fixWaiters.append(once)
+                    box.manager.requestLocation()
+                }
+            }
+        } ?? nil
+
+        return fix ?? manager.location
     }
+
+    /// Starts the compass, waits for one reading, then stops it again.
+    ///
+    /// `manager.heading` is nil until `startUpdatingHeading()` has been called,
+    /// so without this the heading sensor could never report anything at all.
+    func requestHeading(timeout: Double = 5) async -> Bool {
+        guard CLLocationManager.headingAvailable() else { return false }
+
+        let arrived = await withTimeout(seconds: timeout) {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Bool?, Never>) in
+                let once = SingleResume(continuation)
+                Task { @MainActor in
+                    let box = LocationManagerBox.shared
+                    box.headingWaiters.append(once)
+                    box.manager.startUpdatingHeading()
+                }
+            }
+        } ?? nil
+
+        manager.stopUpdatingHeading()
+        return arrived ?? (lastHeading != nil)
+    }
+
+    // MARK: - Delegate
 
     nonisolated func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         // Deliberately does not capture `manager`: CLLocationManager is not
-        // Sendable, so it must not cross into the MainActor task. Read the
-        // shared instance there instead — it is the same object.
+        // Sendable and must not cross into the MainActor task.
         Task { @MainActor in
             let status = LocationManagerBox.shared.manager.authorizationStatus
             guard status != .notDetermined else { return }
-            let waiting = authorizationContinuations
-            authorizationContinuations.removeAll()
-            for continuation in waiting { continuation.resume(returning: status) }
+            LocationManagerBox.shared.drainAuthorization(status)
         }
     }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {}
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        let coordinates = locations.map {
+            (lat: $0.coordinate.latitude, lon: $0.coordinate.longitude,
+             alt: $0.altitude, hAcc: $0.horizontalAccuracy, vAcc: $0.verticalAccuracy,
+             speed: $0.speed, course: $0.course, time: $0.timestamp)
+        }
+        Task { @MainActor in
+            guard let last = coordinates.last else { return }
+            let location = CLLocation(
+                coordinate: CLLocationCoordinate2D(latitude: last.lat, longitude: last.lon),
+                altitude: last.alt, horizontalAccuracy: last.hAcc, verticalAccuracy: last.vAcc,
+                course: last.course, speed: last.speed, timestamp: last.time
+            )
+            LocationManagerBox.shared.drainFix(location)
+        }
+    }
 
-    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {}
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateHeading newHeading: CLHeading) {
+        let magnetic = newHeading.magneticHeading
+        let trueHeading = newHeading.trueHeading
+        let accuracy = newHeading.headingAccuracy
+        Task { @MainActor in
+            LocationManagerBox.shared.drainHeading(magnetic: magnetic, true: trueHeading, accuracy: accuracy)
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) {
+        // Failure must resume the waiters too, or a denied or unavailable fix
+        // leaves the caller waiting for its full timeout every single read.
+        Task { @MainActor in
+            LocationManagerBox.shared.drainFix(nil)
+        }
+    }
+
+    // MARK: - Waiter plumbing
+
+    private func drainAuthorization(_ status: CLAuthorizationStatus) {
+        let waiting = authorizationWaiters
+        authorizationWaiters.removeAll()
+        for waiter in waiting { waiter.resume(status) }
+    }
+
+    private func drainFix(_ location: CLLocation?) {
+        let waiting = fixWaiters
+        fixWaiters.removeAll()
+        for waiter in waiting { waiter.resume(location) }
+    }
+
+    private(set) var lastHeading: (magnetic: Double, trueHeading: Double, accuracy: Double)?
+
+    private func drainHeading(magnetic: Double, true trueHeading: Double, accuracy: Double) {
+        lastHeading = (magnetic, trueHeading, accuracy)
+        let waiting = headingWaiters
+        headingWaiters.removeAll()
+        for waiter in waiting { waiter.resume(true) }
+    }
 }
 
 /// Where you are, and how precisely the app is allowed to know it.
@@ -68,12 +185,13 @@ public struct LiveLocationSource: SensorSource {
     public init() {}
 
     public func availability() async -> SensorAvailability {
-        await MainActor.run {
-            guard CLLocationManager.locationServicesEnabled() else {
-                return .unavailable(reason: .hardwareAbsent)
-            }
-            return Self.map(LocationManagerBox.shared.status,
-                            accuracy: LocationManagerBox.shared.accuracy)
+        // `locationServicesEnabled()` can block, and Apple warns against calling
+        // it on the main thread — so it is read off the MainActor first.
+        let servicesOn = await Task.detached { CLLocationManager.locationServicesEnabled() }.value
+        guard servicesOn else { return .unavailable(reason: .hardwareAbsent) }
+
+        return await MainActor.run {
+            Self.map(LocationManagerBox.shared.status, accuracy: LocationManagerBox.shared.accuracy)
         }
     }
 
@@ -84,12 +202,7 @@ public struct LiveLocationSource: SensorSource {
     }
 
     public func read() async -> SensorSample? {
-        await MainActor.run { LocationManagerBox.shared.requestFix() }
-
-        guard let location = await MainActor.run(resultType: CLLocation?.self, body: {
-            LocationManagerBox.shared.lastLocation
-        }) else { return nil }
-
+        guard let location = await LocationManagerBox.shared.requestFix() else { return nil }
         let reduced = await MainActor.run { LocationManagerBox.shared.accuracy } == .reducedAccuracy
 
         var fields: [SensorField] = [
@@ -121,8 +234,8 @@ public struct LiveLocationSource: SensorSource {
         case .denied: .denied
         case .restricted: .restricted
         case .authorizedAlways, .authorizedWhenInUse:
-            // Reduced accuracy is genuinely partial access — the same shape as a
-            // limited photo library — so it reports as `.limited` rather than
+            // Reduced accuracy is genuinely partial access — the same shape as
+            // a limited photo library — so it reports as `.limited` rather than
             // overstating what the app can see.
             accuracy == .reducedAccuracy ? .limited : .ready
         @unknown default: .needsPermission
@@ -150,15 +263,24 @@ public struct LiveHeadingSource: SensorSource {
     }
 
     public func read() async -> SensorSample? {
-        guard CLLocationManager.headingAvailable() else { return nil }
-        return await MainActor.run {
-            guard let heading = LocationManagerBox.shared.manager.heading else { return nil }
-            return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
-                SensorField("Magnetic heading", .number(heading.magneticHeading, unit: "°")),
-                SensorField("True heading", .number(heading.trueHeading, unit: "°")),
-                SensorField("Accuracy", .number(heading.headingAccuracy, unit: "°")),
-            ])
+        guard CLLocationManager.headingAvailable(),
+              await LocationManagerBox.shared.requestHeading(),
+              let reading = await MainActor.run(resultType: (magnetic: Double, trueHeading: Double, accuracy: Double)?.self, body: {
+                  LocationManagerBox.shared.lastHeading
+              })
+        else { return nil }
+
+        var fields: [SensorField] = [
+            SensorField("Magnetic heading", .number(reading.magnetic, unit: "°")),
+            SensorField("Accuracy", .number(reading.accuracy, unit: "°")),
+        ]
+        // True heading is -1 unless location updates are also active. Reporting
+        // -1 as a bearing would be worse than omitting it.
+        if reading.trueHeading >= 0 {
+            fields.append(SensorField("True heading", .number(reading.trueHeading, unit: "°")))
         }
+
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: fields)
     }
 }
 #endif

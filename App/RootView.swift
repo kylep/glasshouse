@@ -77,7 +77,7 @@ struct RootView: View {
             Section {
                 ForEach(store.awaitingPermission, id: \.capability.id) { snapshot in
                     NavigationLink {
-                        SensorDetailView(snapshot: snapshot, store: store)
+                        SensorDetailView(sensorID: snapshot.capability.id, store: store)
                     } label: {
                         SensorRow(snapshot: snapshot)
                     }
@@ -96,7 +96,7 @@ struct RootView: View {
             Section {
                 ForEach(snapshots, id: \.capability.id) { snapshot in
                     NavigationLink {
-                        SensorDetailView(snapshot: snapshot, store: store)
+                        SensorDetailView(sensorID: snapshot.capability.id, store: store)
                     } label: {
                         SensorRow(snapshot: snapshot)
                     }

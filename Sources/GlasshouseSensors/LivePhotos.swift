@@ -46,11 +46,11 @@ public struct LivePhotoLocationSource: SensorSource {
                 if earliest == nil || date < earliest! { earliest = date }
                 if latest == nil || date > latest! { latest = date }
             }
+            // The seeded simulator library includes a -180,-180 sentinel for
+            // "no GPS". A latitude of -180 is outside the valid ±90 range, so
+            // the validity check already rejects it — no separate case needed.
             guard let coordinate = asset.location?.coordinate,
-                  CLLocationCoordinate2DIsValid(coordinate),
-                  // The seeded simulator library includes a -180,-180 sentinel
-                  // for "no GPS", which must not be treated as a real place.
-                  !(coordinate.latitude == -180 && coordinate.longitude == -180)
+                  CLLocationCoordinate2DIsValid(coordinate)
             else { return }
 
             located += 1
