@@ -8,9 +8,11 @@ It is deliberately invasive, and deliberately honest about it. Nothing is
 collected without a visible affordance, and in this phase nothing leaves the
 device at all.
 
-> **Status: Phase 0.** Harness bootstrap. There is a build, a test suite, and
-> an app shell that reports its own runtime environment. No sensors are
-> implemented yet.
+> **Status: running.** 50 capabilities catalogued, 19 live sensor adapters, and
+> an App Privacy Report importer. Launched in the Simulator it opens with
+> *"6 things about you are readable right now, without anything asking"* over
+> a list of exactly which. Nothing has been verified on real hardware yet —
+> see [`docs/device-verification.md`](docs/device-verification.md).
 
 ## Why it exists
 
@@ -79,10 +81,29 @@ ledger and enforced by tests, rather than discovered at runtime.
 
 ## Privacy
 
-Everything stays on the device. There is no network stack in this phase, no
-analytics, no crash reporting, and no third-party dependencies — and a test
-fails the build if any of that changes. See `docs/` for the threat model and
-the data classification.
+Everything stays on the device. There is no network stack, no analytics, no
+crash reporting, and no third-party dependencies — and `InvariantTests` scans
+the source tree and fails the build if any of that changes. A claim about
+privacy that isn't enforced is just marketing.
+
+- [`docs/threat-model.md`](docs/threat-model.md) — assets, adversaries, and the
+  trust boundary. The most likely breach of this repository is a real sensor
+  trace committed by accident, which is why captures are gitignored.
+- [`docs/data-classification.md`](docs/data-classification.md) — every stream
+  classified, generated from the ledger.
+- [`docs/phase-2-boundary.md`](docs/phase-2-boundary.md) — what must be true
+  before any of this data crosses the device boundary. Written now, while the
+  constraints are still cheap to impose.
+
+## Documentation
+
+| | |
+|---|---|
+| [`architecture.md`](docs/architecture.md) | Why logic lives in a package and the Xcode project is generated |
+| [`simulator-reality.md`](docs/simulator-reality.md) | What the Simulator can and cannot prove, measured rather than assumed |
+| [`capability-tiers.md`](docs/capability-tiers.md) | What free, $99, and App Store release each buy |
+| [`device-verification.md`](docs/device-verification.md) | Generated checklist for first device deploy |
+| [`DECISIONS.md`](docs/DECISIONS.md) | Judgement calls made autonomously, with how to reverse each |
 
 ## Licence
 
