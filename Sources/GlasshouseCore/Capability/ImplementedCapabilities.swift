@@ -30,6 +30,8 @@ public enum ImplementedCapabilities {
         "bluetooth.scan",
         "calendar.events",
         "contacts.all",
+        "health.activity",
+        "health.vitals",
         "core_location.accuracy_authorization",
         "core_location.heading",
         "core_location.position",

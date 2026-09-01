@@ -29,6 +29,14 @@ targets:
         product: GlasshouseCore
       - package: Glasshouse
         product: GlasshouseSensors
+    # HealthKit is signable by a FREE personal team — confirmed against both
+    # Apple's capability matrix and Xcode's own portal cache. That is the
+    # counterintuitive finding this project started from, so it is worth
+    # actually exercising rather than leaving as a claim in a document.
+    entitlements:
+      path: App/Glasshouse.entitlements
+      properties:
+        com.apple.developer.healthkit: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: fit.glasshouse.app

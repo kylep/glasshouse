@@ -50,6 +50,8 @@ public enum GlasshouseSensors {
             LivePhotoLocationSource(),
             LiveBluetoothScanSource(),
             LiveContactsSource(),
+            LiveHealthVitalsSource(),
+            LiveHealthActivitySource(),
             LiveCalendarSource(),
             LiveRemindersSource(),
 

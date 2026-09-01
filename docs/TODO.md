@@ -19,6 +19,7 @@ Open Glasshouse, tap into the row, hit **Ask for permission**:
 | **Photo library** | Also unlocks **Photo locations** — the EXIF map, the app's best demonstration, still only run against simulator fixtures. |
 | **Reminders** | Separate grant from calendar. |
 | **Clipboard contents (notified)** | The banner half of the clipboard pair. App-level consent, not a system dialog. |
+| **Vital signs** | Also unlocks **Activity and fitness** — heart rate going back years, resting rate, blood oxygen, VO2 max. The deepest data on the phone. |
 
 Granting Photos covers both photo rows in one tap; iOS grants per permission,
 not per sensor.
