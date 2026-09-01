@@ -111,25 +111,42 @@ final class MotionManagerBox {
 
             Task { @MainActor in
                 try? await Task.sleep(for: .seconds(timeout))
-                if once.resume(nil) { self.altimeter.stopRelativeAltitudeUpdates() }
+                if once.resume(nil) { MotionManagerBox.shared.stopAltimeter() }
             }
 
+            // Deliberately does NOT use MainActor.assumeIsolated here, which is
+            // what crashed the app the moment Motion & Fitness was granted.
+            //
+            // `to: .main` delivers on OperationQueue.main, which runs on the
+            // main *thread* — but that is not the same as being isolated to the
+            // MainActor's executor. `assumeIsolated` asserts executor identity
+            // and traps when it does not match, which is a hard crash rather
+            // than a warning.
+            //
+            // So the handler touches no actor-isolated state at all: it pulls
+            // plain Doubles out of the sample, resumes, and hops to the
+            // MainActor separately to stop the sensor.
             altimeter.startRelativeAltitudeUpdates(to: .main) { data, error in
-                // Delivered on the main queue, as requested above.
-                MainActor.assumeIsolated {
-                    guard error == nil, let data else {
-                        self.altimeter.stopRelativeAltitudeUpdates()
-                        once.resume(nil)
-                        return
-                    }
-                    self.altimeter.stopRelativeAltitudeUpdates()
-                    once.resume(Altitude(
+                let reading: Altitude? = if error == nil, let data {
+                    Altitude(
                         pressure: data.pressure.doubleValue,
                         relativeAltitude: data.relativeAltitude.doubleValue
-                    ))
+                    )
+                } else {
+                    nil
+                }
+
+                if once.resume(reading) {
+                    Task { @MainActor in MotionManagerBox.shared.stopAltimeter() }
                 }
             }
         }
+    }
+
+    /// Stops the barometer. MainActor-isolated because `CMAltimeter` is not
+    /// Sendable and must only be touched from here.
+    func stopAltimeter() {
+        altimeter.stopRelativeAltitudeUpdates()
     }
 
     /// Triggers the Motion & Fitness dialog and waits for an answer.
@@ -154,8 +171,22 @@ final class MotionManagerBox {
     /// The pedometer is a stored property rather than a local, because a local
     /// one is released as soon as the calling function returns and its
     /// completion handler may then never fire.
+    /// Set false while `queryPedometerData` is under investigation.
+    ///
+    /// On an iPhone 14 Pro running iOS 26.6, with Motion & Fitness granted
+    /// (authorizationStatus == .authorized) and NSMotionUsageDescription
+    /// present in the bundle, this call terminates the process with SIGTRAP
+    /// before ever invoking its completion handler. Verified by bisection:
+    /// skipping the query alone lets the whole refresh finish normally.
+    ///
+    /// Quarantined rather than removed, because one crashing sensor should not
+    /// take down an app whose entire purpose is showing the other forty.
+    nonisolated static let pedometerQueryEnabled = false
+
     func readSteps(timeout: Double = 5) async -> Steps? {
-        guard CMPedometer.isStepCountingAvailable() else { return nil }
+        guard CMPedometer.isStepCountingAvailable(),
+              Self.pedometerQueryEnabled
+        else { return nil }
 
         let now = Date()
         let start = now.addingTimeInterval(-86_400)
@@ -286,6 +317,13 @@ public struct LivePedometerSource: SensorSource {
     public init() {}
 
     public func availability() async -> SensorAvailability {
+        // Reported honestly rather than as `.ready`. Claiming readiness and
+        // then returning nothing is exactly the "silent failure" this project
+        // exists to make impossible, and it made the app's own anomaly detector
+        // flag a mystery whose cause is known and written down.
+        guard MotionManagerBox.pedometerQueryEnabled else {
+            return .unavailable(reason: .knownDefect)
+        }
         guard CMPedometer.isStepCountingAvailable() else {
             return .unavailable(reason: RuntimeEnvironment.current == .simulator
                 ? .simulator

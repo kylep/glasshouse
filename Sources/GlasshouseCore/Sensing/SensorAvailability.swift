@@ -70,6 +70,12 @@ public enum UnavailabilityReason: String, Sendable, Hashable, Codable {
     /// permission state. Not a failure: a documented property of the sandbox.
     case noPublicAPI = "no_public_api"
 
+    /// Disabled because it is known to be broken, with the reason recorded in
+    /// the ledger. An app about honest disclosure should say "this is broken"
+    /// rather than quietly reporting nothing and letting its own anomaly
+    /// detector call it a mystery.
+    case knownDefect = "known_defect"
+
     /// Human-readable, and deliberately non-apologetic.
     public var explanation: String {
         switch self {
@@ -83,6 +89,8 @@ public enum UnavailabilityReason: String, Sendable, Hashable, Codable {
             "This version of iOS is older than the API."
         case .noPublicAPI:
             "No app is allowed to read this. The sensor exists; the API doesn't."
+        case .knownDefect:
+            "Switched off: reading this currently crashes the app. Being investigated."
         }
     }
 }
