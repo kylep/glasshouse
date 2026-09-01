@@ -19,10 +19,10 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            gate: .asksOnce,
+            gate: .neverAsks,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionmanager + measured: isAccelerometerAvailable == false, iOS 26.2 simulator",
             verified: "2026-08-30",
-            notes: "isAccelerometerAvailable is false in the Simulator and no simctl facility injects motion data. Replay-only until device day."
+            notes: "isAccelerometerAvailable is false in the Simulator and no simctl facility injects motion data. Replay-only until device day. Measured on an iPhone 14 Pro: this produced readings with no dialog and no grant, while the pedometer and altimeter sat at notDetermined. Motion & Fitness gates the DERIVED sensors — pedometer, altimeter, activity — which expose a CMAuthorizationStatus. Raw CMMotionManager streams have no authorization API at all. NSMotionUsageDescription is still declared: it costs nothing and Apple's framework overview asks for it."
         ),
         Capability(
             id: "core_motion.gyroscope",
@@ -32,9 +32,10 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            gate: .asksOnce,
+            gate: .neverAsks,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionmanager + measured: isGyroAvailable == false",
-            verified: "2026-08-30"
+            verified: "2026-08-30",
+            notes: "Measured on an iPhone 14 Pro: this produced readings with no dialog and no grant, while the pedometer and altimeter sat at notDetermined. Motion & Fitness gates the DERIVED sensors — pedometer, altimeter, activity — which expose a CMAuthorizationStatus. Raw CMMotionManager streams have no authorization API at all. NSMotionUsageDescription is still declared: it costs nothing and Apple's framework overview asks for it."
         ),
         Capability(
             id: "core_motion.magnetometer",
@@ -44,9 +45,10 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            gate: .asksOnce,
+            gate: .neverAsks,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionmanager + measured: isMagnetometerAvailable == false",
-            verified: "2026-08-30"
+            verified: "2026-08-30",
+            notes: "Measured on an iPhone 14 Pro: this produced readings with no dialog and no grant, while the pedometer and altimeter sat at notDetermined. Motion & Fitness gates the DERIVED sensors — pedometer, altimeter, activity — which expose a CMAuthorizationStatus. Raw CMMotionManager streams have no authorization API at all. NSMotionUsageDescription is still declared: it costs nothing and Apple's framework overview asks for it."
         ),
         Capability(
             id: "core_motion.device_motion",
@@ -56,9 +58,10 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            gate: .asksOnce,
+            gate: .neverAsks,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionmanager + measured: isDeviceMotionAvailable == false",
-            verified: "2026-08-30"
+            verified: "2026-08-30",
+            notes: "Measured on an iPhone 14 Pro: this produced readings with no dialog and no grant, while the pedometer and altimeter sat at notDetermined. Motion & Fitness gates the DERIVED sensors — pedometer, altimeter, activity — which expose a CMAuthorizationStatus. Raw CMMotionManager streams have no authorization API at all. NSMotionUsageDescription is still declared: it costs nothing and Apple's framework overview asks for it."
         ),
         Capability(
             id: "core_motion.pedometer",

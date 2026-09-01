@@ -132,6 +132,23 @@ final class MotionManagerBox {
         }
     }
 
+    /// Triggers the Motion & Fitness dialog and waits for an answer.
+    ///
+    /// Core Motion has no `requestAuthorization` call — unlike Core Location or
+    /// Photos, the dialog appears the first time a gated sensor is *started*.
+    /// So asking means starting it and then watching the authorization status.
+    ///
+    /// The wait is generous because a person has to read a dialog and decide.
+    func askForMotionAccess(startingWith trigger: @escaping @Sendable () async -> Void) async {
+        guard CMPedometer.authorizationStatus() == .notDetermined else { return }
+        await trigger()
+
+        for _ in 0..<120 {
+            if CMPedometer.authorizationStatus() != .notDetermined { return }
+            try? await Task.sleep(for: .milliseconds(500))
+        }
+    }
+
     /// Queries the last 24 hours of step data.
     ///
     /// The pedometer is a stored property rather than a local, because a local
@@ -231,6 +248,17 @@ public struct LiveAltimeterSource: SensorSource {
         return Self.map(CMAltimeter.authorizationStatus())
     }
 
+    /// Starting the barometer is what raises the Motion & Fitness dialog;
+    /// there is no separate authorization call to make. Without this override
+    /// the protocol default applied, which asks for nothing — the button did
+    /// nothing at all.
+    public func requestAccess() async -> SensorAvailability {
+        await MotionManagerBox.shared.askForMotionAccess {
+            _ = await MotionManagerBox.shared.readAltitude(timeout: 1)
+        }
+        return await availability()
+    }
+
     public func read() async -> SensorSample? {
         guard let reading = await MotionManagerBox.shared.readAltitude() else { return nil }
         return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
@@ -264,6 +292,14 @@ public struct LivePedometerSource: SensorSource {
                 : .hardwareAbsent)
         }
         return LiveAltimeterSource.map(CMPedometer.authorizationStatus())
+    }
+
+    /// As with the barometer, running the query is what raises the dialog.
+    public func requestAccess() async -> SensorAvailability {
+        await MotionManagerBox.shared.askForMotionAccess {
+            _ = await MotionManagerBox.shared.readSteps(timeout: 1)
+        }
+        return await availability()
     }
 
     public func read() async -> SensorSample? {

@@ -35,16 +35,19 @@ rather than observed.
 ## CoreMotion
 
 - [ ] **Accelerometer** (`core_motion.accelerometer`) — API present, no data delivered
-      isAccelerometerAvailable is false in the Simulator and no simctl facility injects motion data. Replay-only until device day.
+      isAccelerometerAvailable is false in the Simulator and no simctl facility injects motion data. Replay-only until device day. Measured on an iPhone 14 Pro: this produced readings with no dialog and no grant, while the pedometer and altimeter sat at notDetermined. Motion & Fitness gates the DERIVED sensors — pedometer, altimeter, activity — which expose a CMAuthorizationStatus. Raw CMMotionManager streams have no authorization API at all. NSMotionUsageDescription is still declared: it costs nothing and Apple's framework overview asks for it.
 - [ ] **Motion activity** (`core_motion.activity`) — API present, no data delivered
 - [ ] **Absolute altitude** (`core_motion.altimeter_absolute`) — API present, no data delivered
       iOS 15+, and hardware-gated to iPhone 12 and later. Classified intimate rather than personal because floor-level position is effectively fine-grained location.
 - [ ] **Barometric altitude** (`core_motion.altimeter_relative`) — API present, no data delivered
 - [ ] **Device motion** (`core_motion.device_motion`) — API present, no data delivered
+      Measured on an iPhone 14 Pro: this produced readings with no dialog and no grant, while the pedometer and altimeter sat at notDetermined. Motion & Fitness gates the DERIVED sensors — pedometer, altimeter, activity — which expose a CMAuthorizationStatus. Raw CMMotionManager streams have no authorization API at all. NSMotionUsageDescription is still declared: it costs nothing and Apple's framework overview asks for it.
 - [ ] **Gyroscope** (`core_motion.gyroscope`) — API present, no data delivered
+      Measured on an iPhone 14 Pro: this produced readings with no dialog and no grant, while the pedometer and altimeter sat at notDetermined. Motion & Fitness gates the DERIVED sensors — pedometer, altimeter, activity — which expose a CMAuthorizationStatus. Raw CMMotionManager streams have no authorization API at all. NSMotionUsageDescription is still declared: it costs nothing and Apple's framework overview asks for it.
 - [ ] **Headphone motion** (`core_motion.headphone_motion`) — API present, no data delivered
       iOS 14+. Requires physically connected motion-capable AirPods, so device verification needs the hardware too.
 - [ ] **Magnetometer** (`core_motion.magnetometer`) — API present, no data delivered
+      Measured on an iPhone 14 Pro: this produced readings with no dialog and no grant, while the pedometer and altimeter sat at notDetermined. Motion & Fitness gates the DERIVED sensors — pedometer, altimeter, activity — which expose a CMAuthorizationStatus. Raw CMMotionManager streams have no authorization API at all. NSMotionUsageDescription is still declared: it costs nothing and Apple's framework overview asks for it.
 - [ ] **Pedometer** (`core_motion.pedometer`) — API present, no data delivered
       Apple's docs are explicit that a missing NSMotionUsageDescription crashes the app rather than failing gracefully. Queries historical data the OS recorded independently of this app.
 

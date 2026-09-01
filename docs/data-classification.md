@@ -39,13 +39,13 @@ Off until explicitly enabled.
 - **Contacts** (`contacts.all`, asks once) — Everyone you know: names, phone numbers, emails, street addresses, birthdays, employers, and relationships. This is data about other people, and none of them agreed to it.
 - **Compass heading** (`core_location.heading`, asks once) — Which way the phone is pointing, magnetic and true.
 - **Location** (`core_location.position`, asks once) — Where you are, to within a few metres, with altitude, speed, and course. Sampled over time it is the single most identifying stream on the device — four coarse points are enough to uniquely identify most people.
-- **Accelerometer** (`core_motion.accelerometer`, asks once) — Every movement of the phone in three axes, at up to 100 samples a second. Enough to infer walking, driving, or which pocket it is in — and, in published research, enough to recover what is typed on a nearby keyboard.
+- **Accelerometer** (`core_motion.accelerometer`, **never asks**) — Every movement of the phone in three axes, at up to 100 samples a second. Enough to infer walking, driving, or which pocket it is in — and, in published research, enough to recover what is typed on a nearby keyboard.
 - **Motion activity** (`core_motion.activity`, asks once) — What you are doing, classified by the OS: walking, running, cycling, driving, or stationary — with a confidence level, and queryable as history.
 - **Barometric altitude** (`core_motion.altimeter_relative`, asks once) — Air pressure in kilopascals and relative altitude change, precise enough to detect climbing a single flight of stairs.
-- **Device motion** (`core_motion.device_motion`, asks once) — A fused reading: attitude, gravity, user acceleration, rotation rate, and calibrated magnetic field. Cleaner than any single sensor and correspondingly more revealing.
-- **Gyroscope** (`core_motion.gyroscope`, asks once) — The phone's rotation rate around each axis. Combined with the accelerometer it reconstructs how the device is being held and moved.
+- **Device motion** (`core_motion.device_motion`, **never asks**) — A fused reading: attitude, gravity, user acceleration, rotation rate, and calibrated magnetic field. Cleaner than any single sensor and correspondingly more revealing.
+- **Gyroscope** (`core_motion.gyroscope`, **never asks**) — The phone's rotation rate around each axis. Combined with the accelerometer it reconstructs how the device is being held and moved.
 - **Headphone motion** (`core_motion.headphone_motion`, asks once) — The orientation of your head, streamed from AirPods. Where you are looking, and when you nod.
-- **Magnetometer** (`core_motion.magnetometer`, asks once) — The ambient magnetic field. Indoors this is distorted by building steel in ways that are stable enough to act as a location fingerprint.
+- **Magnetometer** (`core_motion.magnetometer`, **never asks**) — The ambient magnetic field. Indoors this is distorted by building steel in ways that are stable enough to act as a location fingerprint.
 - **Pedometer** (`core_motion.pedometer`, asks once) — Steps, distance, pace, cadence, and floors climbed — including history recorded before this app was ever installed.
 - **Accessibility settings** (`device.accessibility`, **never asks**) — Whether you use VoiceOver, larger text, reduced motion, or increased contrast. These can imply disability, and no permission gates them.
 - **Precise nearby ranging** (`nearby_interaction.ranging`, asks once) — Distance and direction to another Apple device to within centimetres, using ultra-wideband.
@@ -86,7 +86,7 @@ Collected by default.
 
 ## The part worth noticing
 
-16 of 59 capabilities are read without iOS
+20 of 59 capabilities are read without iOS
 ever asking. No dialog, nothing in Settings, no way to turn them off. That
 set — not the sensors behind a permission — is the most instructive thing
 this app has to show.

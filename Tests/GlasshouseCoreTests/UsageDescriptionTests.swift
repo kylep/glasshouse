@@ -130,21 +130,43 @@ struct GeneratedBuildInputTests {
 
     @Test("The ledger's own consistency check catches an authoring mistake")
     func inconsistencyCheckFires() {
+        // A free-tier capability that says iOS will ask, but declares no
+        // purpose string for the dialog to show. iOS presents an empty prompt
+        // or, for several frameworks, terminates the app.
         let broken = Capability(
             id: "test.broken",
             displayName: "Broken",
             framework: "Test",
-            reveals: "A row with a purpose string but no prompt.",
-            plistKeys: ["NSMotionUsageDescription"],
+            reveals: "A row claiming a dialog with nothing to put in it.",
             simulator: .worksFully,
             sensitivity: .ambient,
-            gate: .neverAsks,            // contradicts declaring a plist key
+            gate: .asksOnce,
             source: "test",
             verified: "2026-08-30"
         )
 
         let problems = CapabilityLedger.inconsistencies(in: [broken])
         #expect(problems.count == 1)
-        #expect(problems[0].contains("declares an Info.plist key"))
+        #expect(problems[0].contains("declares no Info.plist key"))
+    }
+
+    @Test("Declaring a purpose string without a dialog is allowed")
+    func plistKeyWithoutDialogIsFine() {
+        // The converse rule was asserted here until an iPhone disproved it. The
+        // raw Core Motion streams declare NSMotionUsageDescription and never
+        // prompt, because Motion & Fitness gates only the derived sensors.
+        let rawMotion = Capability(
+            id: "test.raw_motion",
+            displayName: "Raw motion",
+            framework: "CoreMotion",
+            reveals: "A stream that declares a key it may need but never triggers.",
+            plistKeys: ["NSMotionUsageDescription"],
+            simulator: .returnsNothing,
+            sensitivity: .personal,
+            gate: .neverAsks,
+            source: "measured on device",
+            verified: "2026-08-30"
+        )
+        #expect(CapabilityLedger.inconsistencies(in: [rawMotion]).isEmpty)
     }
 }

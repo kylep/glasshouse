@@ -126,11 +126,12 @@ public enum CapabilityLedger {
             if row.reveals.isEmpty {
                 problems.append("'\(row.id)' does not say what it reveals")
             }
-            // A declared purpose string exists precisely to populate a system
-            // dialog, so declaring one while claiming no dialog is an error.
-            if !row.plistKeys.isEmpty && !row.gate.showsSystemDialog {
-                problems.append("'\(row.id)' declares an Info.plist key but its gate is '\(row.gate.rawValue)'")
-            }
+            // Deliberately NOT the converse rule ("a plist key implies a
+            // dialog"). That was asserted here until an iPhone disproved it:
+            // the raw Core Motion streams declare NSMotionUsageDescription and
+            // never prompt, because Motion & Fitness gates only the derived
+            // sensors. Declaring a key you might need is cheap; claiming iOS
+            // will ask when it won't is a lie to the user.
             // Nothing readable can be off limits, and nothing off limits can be
             // readable — that pairing was the ambiguity the old flag created.
             if row.gate == .noAccessAtAll && row.status != .blocked {
