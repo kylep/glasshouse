@@ -18,6 +18,7 @@ final class SensorStore {
         defer { isRefreshing = false }
         snapshots = await registry.snapshotAll()
         lastRefresh = Date()
+        DeviceDiagnostics.report(snapshots)
     }
 
     /// Asks for one sensor's permission, then re-reads just that sensor.
