@@ -28,6 +28,7 @@ public enum ImplementedCapabilities {
 
         // Behind a permission prompt.
         "bluetooth.scan",
+        "av.microphone",
         "calendar.events",
         "contacts.all",
         "health.activity",
@@ -47,6 +48,9 @@ public enum ImplementedCapabilities {
         "photos.asset_location",
         "photos.library",
         "reminders.all",
+        "speech.recognition",
+        "vision.faces",
+        "vision.text",
     ]
 
     /// Ledger rows with no adapter yet. Honest rather than hidden — the app
