@@ -118,6 +118,14 @@ final class TraceStore {
         if lastRecording?.url == url { lastRecording = nil }
     }
 
+    /// Reports a recording that could not be read.
+    ///
+    /// A load that silently does nothing looks identical to a tap that missed,
+    /// and leaves the person unsure whether the app or their finger failed.
+    func reportLoadFailure(_ name: String) {
+        error = "Couldn't read \(name). It may not be a Glasshouse recording."
+    }
+
     /// Loads recordings back, for replay.
     static func load(_ url: URL) -> [SensorTrace] {
         guard let data = try? Data(contentsOf: url),

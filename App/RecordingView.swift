@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import GlasshouseCore
 import GlasshouseSensors
 
@@ -9,12 +10,15 @@ import GlasshouseSensors
 /// without one — and the only way to check, months from now, whether a sensor
 /// still does what it did today.
 struct RecordingView: View {
-    @State private var store = TraceStore()
+    let store: SensorStore
+
+    @State private var traces = TraceStore()
     @State private var notes = ""
     @State private var saved: [URL] = []
     @State private var sharing: URL?
 
     private let registry = GlasshouseSensors.liveRegistry()
+    @State private var importing = false
 
     var body: some View {
         NavigationStack {
@@ -27,27 +31,27 @@ struct RecordingView: View {
 
                     Button {
                         Task {
-                            await store.record(from: registry, notes: notes.isEmpty ? nil : notes)
+                            await traces.record(from: registry, notes: notes.isEmpty ? nil : notes)
                             notes = ""
-                            saved = store.saved()
+                            saved = traces.saved()
                         }
                     } label: {
                         HStack {
-                            Label(store.isRecording ? "Recording…" : "Record 10 seconds",
-                                  systemImage: store.isRecording ? "stop.circle" : "record.circle")
+                            Label(traces.isRecording ? "Recording…" : "Record 10 seconds",
+                                  systemImage: traces.isRecording ? "stop.circle" : "record.circle")
                             Spacer()
-                            if store.isRecording {
-                                ProgressView(value: store.progress)
+                            if traces.isRecording {
+                                ProgressView(value: traces.progress)
                                     .frame(width: 60)
                             }
                         }
                     }
-                    .disabled(store.isRecording)
+                    .disabled(traces.isRecording)
                 } footer: {
                     Text("Ten readings of every sensor, a second apart. A note now saves you guessing later — a page of accelerometer numbers means nothing without knowing what you were doing.")
                 }
 
-                if let error = store.error {
+                if let error = traces.error {
                     Section {
                         Label(error, systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
@@ -55,7 +59,7 @@ struct RecordingView: View {
                     }
                 }
 
-                if let last = store.lastRecording {
+                if let last = traces.lastRecording {
                     Section("Just recorded") {
                         LabeledContent("Sensors with data", value: "\(last.sensorsWithData)")
                         LabeledContent("Samples", value: "\(last.totalSamples)")
@@ -70,21 +74,29 @@ struct RecordingView: View {
                 if !saved.isEmpty {
                     Section {
                         ForEach(saved, id: \.self) { url in
-                            Button {
-                                sharing = url
-                            } label: {
-                                HStack {
-                                    Text(url.lastPathComponent)
-                                        .font(.caption)
-                                        .monospaced()
-                                    Spacer()
+                            HStack {
+                                Button {
+                                    play(url)
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "play.circle")
+                                        Text(url.lastPathComponent)
+                                            .font(.caption)
+                                            .monospaced()
+                                    }
+                                }
+                                Spacer()
+                                Button {
+                                    sharing = url
+                                } label: {
                                     Image(systemName: "square.and.arrow.up")
                                 }
+                                .buttonStyle(.borderless)
                             }
                         }
                         .onDelete { offsets in
-                            for index in offsets { store.delete(saved[index]) }
-                            saved = store.saved()
+                            for index in offsets { traces.delete(saved[index]) }
+                            saved = traces.saved()
                         }
                     } header: {
                         Text("Saved on this phone")
@@ -94,11 +106,28 @@ struct RecordingView: View {
                 }
             }
             .navigationTitle("Record")
-            .task { saved = store.saved() }
+            .task { saved = traces.saved() }
             .sheet(item: $sharing) { url in
                 ShareSheet(url: url)
             }
+            .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in
+                if case let .success(url) = result { play(url) }
+            }
         }
+    }
+
+    /// Loads a recording and switches the app onto it.
+    private func play(_ url: URL) {
+        // Files arriving from the picker sit outside the sandbox until claimed.
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+
+        let loaded = TraceStore.load(url)
+        guard !loaded.isEmpty else {
+            traces.reportLoadFailure(url.lastPathComponent)
+            return
+        }
+        Task { await store.startReplaying(loaded, named: url.lastPathComponent) }
     }
 
     private var explanation: some View {

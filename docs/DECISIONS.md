@@ -182,3 +182,25 @@ is not "leaving the device" in any meaningful sense, and they would have a point
 **Reversal:** add `NWBrowser` to the allowlist in `InvariantTests`, alongside
 the existing `NWPathMonitor` carve-out, and write the adapter. The ledger row,
 the usage description, and the research are all already there.
+
+## D8 — One shared sensor store across the tabs
+
+**Decided:** `SensorStore` is created once in `GlasshouseApp` and passed into
+both `RootView` and `RecordingView`, rather than each tab owning its own.
+
+**Why:** replay would otherwise be a lie. Loading a recording in the Record tab
+has to change what the sensor list shows; with two independent stores the app
+could display live readings on one screen while claiming to replay on another.
+
+An app whose entire argument is that people are misled about their own data has
+no business being ambiguous about whether a number on its own screen is real.
+That is also why replaying puts an orange banner above everything — "These are
+recorded readings, not live" — rather than a subtle badge.
+
+**Confidence:** high on the sharing; medium on the shape. A single shared store
+is the simplest thing that guarantees consistency, but it does mean the two
+tabs are coupled through it.
+
+**Reversal:** give `RecordingView` its own store again and pass replay state
+through a binding or an environment value instead. The banner logic already
+reads from a single `replaying` property, so it would move intact.

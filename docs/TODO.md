@@ -69,9 +69,9 @@ Twelve of fifty-nine. Most are genuinely stuck rather than merely unwritten:
   confirmed the battery percentage matches what the phone shows.
 - **Four adapters are built but never run**: microphone, speech, Vision text,
   Vision faces. They were installed while the phone was locked.
-- **Replay traces are recorded but never replayed.** The recorder and the
-  replay source both exist; nothing yet loads a trace back into the Simulator's
-  registry.
+- **Replay is end to end but unexercised on a real recording.** Record, save,
+  share, load and play all exist and build; nobody has yet recorded a trace on
+  the phone and played it back in a Simulator to confirm the round trip.
 
 ### Toolchain
 

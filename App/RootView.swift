@@ -2,11 +2,12 @@ import SwiftUI
 import GlasshouseCore
 
 struct RootView: View {
-    @State private var store = SensorStore()
+    let store: SensorStore
 
     var body: some View {
         NavigationStack {
             List {
+                replayBanner
                 summary
 
                 section("Reading you right now",
@@ -57,6 +58,39 @@ struct RootView: View {
     }
 
     // MARK: - Pieces
+
+    /// Shown above everything whenever a recording is driving the app.
+    ///
+    /// Not a nicety. An app whose argument is that people are misled about
+    /// their own data cannot present a recording as the present moment.
+    @ViewBuilder
+    private var replayBanner: some View {
+        if let replay = store.replaying {
+            Section {
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("These are recorded readings, not live",
+                          systemImage: "play.rectangle")
+                        .font(.headline)
+                        .foregroundStyle(.orange)
+
+                    Text("From \(replay.name), captured on \(replay.recordedOn == .device ? "a phone" : "a simulator") · \(replay.sensors) sensors")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    if let notes = replay.notes {
+                        Text(notes).font(.caption).italic().foregroundStyle(.secondary)
+                    }
+
+                    Button("Go back to live sensors") {
+                        Task { await store.stopReplaying() }
+                    }
+                    .font(.callout)
+                }
+                .padding(.vertical, 4)
+            }
+            .listRowBackground(Color.orange.opacity(0.12))
+        }
+    }
 
     @ViewBuilder
     private var summary: some View {
@@ -166,5 +200,5 @@ struct SensorRow: View {
 }
 
 #Preview {
-    RootView()
+    RootView(store: SensorStore())
 }

@@ -11,7 +11,49 @@ final class SensorStore {
     private(set) var isRefreshing = false
     private(set) var lastRefresh: Date?
 
-    private let registry = GlasshouseSensors.liveRegistry()
+    private var registry = GlasshouseSensors.liveRegistry()
+
+    /// The recording currently driving the app, if any.
+    ///
+    /// Replaying must never be mistakeable for live. Everything that renders a
+    /// reading checks this, and the app says so at the top of the list — an app
+    /// arguing that people are misled about their data cannot itself present a
+    /// recording as the present moment.
+    private(set) var replaying: ReplayContext?
+
+    struct ReplayContext: Sendable, Equatable {
+        let name: String
+        let recordedOn: RuntimeEnvironment
+        let recordedAt: Double
+        let sensors: Int
+        let notes: String?
+    }
+
+    /// Switches the app onto a recording.
+    func startReplaying(_ traces: [SensorTrace], named name: String) async {
+        let usable = traces.filter { !$0.isEmpty }
+        guard let first = usable.first else {
+            replaying = nil
+            return
+        }
+
+        registry = .replaying(usable)
+        replaying = ReplayContext(
+            name: name,
+            recordedOn: first.recordedOn,
+            recordedAt: first.recordedAt,
+            sensors: usable.count,
+            notes: usable.compactMap(\.notes).first
+        )
+        await refresh()
+    }
+
+    /// Returns to the sensors actually attached to this device.
+    func stopReplaying() async {
+        registry = GlasshouseSensors.liveRegistry()
+        replaying = nil
+        await refresh()
+    }
 
     func refresh() async {
         isRefreshing = true
