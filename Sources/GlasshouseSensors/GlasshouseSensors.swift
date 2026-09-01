@@ -57,6 +57,7 @@ public enum GlasshouseSensors {
             LiveAltimeterSource(),
             LiveAbsoluteAltitudeSource(),
             LiveMagnetometerSource(),
+            LiveMotionActivitySource(),
             LiveDeviceMotionSource(),
             LiveHeadphoneMotionSource(),
             LivePedometerSource(),

@@ -7,47 +7,37 @@ block anything.
 
 ## Blocked on Kyle
 
-### 1. Pedometer query terminates the process — needs the crash report
+### ~~1. Pedometer query terminates the process~~ — SOLVED 2026-09-01
 
-**Status:** quarantined behind `MotionManagerBox.pedometerQueryEnabled = false`,
-so the rest of the app works. The row reports `.unavailable(.knownDefect)`
-rather than claiming ready and returning nothing.
+**Cause: calling `CMPedometer` from a `@MainActor` context.** Nothing to do
+with the API, the query window, or the usage description.
 
-**What happens:** with Motion & Fitness granted, `CMPedometer.queryPedometerData`
-kills the process with SIGTRAP. Established by bisection on an iPhone 14 Pro,
-iOS 26.6, Xcode 26.2, free personal signing:
+Established by bisection on an iPhone 14 Pro, iOS 26.6, Motion & Fitness
+granted. Each row is a device run:
 
-| Observation | Value |
+| Configuration | Result |
 |---|---|
-| `CMPedometer.authorizationStatus()` | `.authorized` (3) |
-| `CMPedometer.isStepCountingAvailable()` | true |
-| `NSMotionUsageDescription` in the shipped bundle | present |
-| Completion handler invoked | **never** |
-| Time to death | under 5s — before the internal timeout fires |
-| Disabling only this call | whole refresh completes normally |
+| `queryPedometerData`, 24h window, MainActor, shared object | SIGTRAP |
+| `queryPedometerData`, 1h window, MainActor, shared object | SIGTRAP |
+| `startUpdates`, MainActor, shared object | SIGTRAP |
+| `queryPedometerData`, 1h, **detached task, own object** | **works** |
 
-So Core Motion terminates us inside the call; nothing in this codebase traps.
-The usual explanation (missing usage description) is ruled out.
+In every failing case the completion handler was never invoked and the
+process died in under five seconds — before the internal timeout could fire —
+so Core Motion was terminating us rather than any Swift code trapping.
 
-**What's needed:** the crash report names the exception and the Core Motion
-frame. Only Kyle can fetch it:
+Ruled out along the way: missing `NSMotionUsageDescription` (present in the
+shipped bundle), the historical-query pattern in general (`CMMotionActivityManager`
+queries fine from the same context), and the query window.
 
-> Settings → Privacy & Security → Analytics & Improvements → Analytics Data →
-> find `Glasshouse-2026-…​.ips` → share it somewhere local (**not** into this
-> repo — it is public, and `.ips` files carry device identifiers).
+**One honest caveat**: the working configuration changed two things at once —
+off the main actor *and* onto its own `CMPedometer`. Both are plausible causes
+and I did not isolate which. The fix is stable and reproducible; the precise
+mechanism is not established.
 
-**Hypotheses worth testing once the report exists**, roughly in order:
-
-1. A narrower query window. 24 hours may span a period with no recorded data,
-   or cross a boundary Core Motion mishandles. Try 1 hour, then `startUpdates`.
-2. Querying too soon after the grant, before `motiond` has provisioned the app.
-   Try a delay, or trigger on a later refresh rather than the first.
-3. `queryPedometerData` called from a `@MainActor` context. Try a detached
-   background call.
-4. A genuine iOS 26.6 defect. If so, file feedback with the sample and keep the
-   quarantine.
-
-**Do not** re-enable the flag without a device run proving it survives.
+`MotionManagerBox.readSteps` is `nonisolated`, runs on a detached task, owns
+its pedometer, and holds it with `withExtendedLifetime` for the duration of the
+query. Do not "tidy" it back onto the MainActor.
 
 ### 2. A real App Privacy Report export
 

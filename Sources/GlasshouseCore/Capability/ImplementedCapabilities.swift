@@ -31,6 +31,7 @@ public enum ImplementedCapabilities {
         "core_location.heading",
         "core_location.position",
         "core_motion.accelerometer",
+        "core_motion.activity",
         "core_motion.altimeter_absolute",
         "core_motion.altimeter_relative",
         "core_motion.device_motion",

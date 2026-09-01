@@ -36,6 +36,13 @@ struct AbsoluteAltitude: Sendable {
     let precision: Double
 }
 
+struct ActivityGuess: Sendable {
+    let kind: String
+    let confidence: String
+    let startedAt: Double
+    let sampleCount: Int
+}
+
 struct Steps: Sendable {
     let count: Int
     let distance: Double?
@@ -57,6 +64,7 @@ final class MotionManagerBox {
     private let altimeter = CMAltimeter()
     private let pedometer = CMPedometer()
     private let headphones = CMHeadphoneMotionManager()
+    private let activity = CMMotionActivityManager()
 
     /// Serialises altimeter reads. A single shared `CMAltimeter` cannot serve
     /// two overlapping `startRelativeAltitudeUpdates` calls: the second
@@ -257,6 +265,55 @@ final class MotionManagerBox {
         altimeter.stopAbsoluteAltitudeUpdates()
     }
 
+    /// What the OS thinks you have been doing — walking, driving, still.
+    ///
+    /// Uses the same historical-query shape as the pedometer, which currently
+    /// terminates the process on this device. Run under the same quarantine
+    /// flag so one experiment cannot take the app down.
+    func readActivity(timeout: Double = 5) async -> ActivityGuess? {
+        guard CMMotionActivityManager.isActivityAvailable(),
+              Self.activityQueryEnabled
+        else { return nil }
+
+        let now = Date()
+        let start = now.addingTimeInterval(-3_600)
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<ActivityGuess?, Never>) in
+            let once = SingleResume(continuation)
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(timeout))
+                once.resume(nil)
+            }
+
+            activity.queryActivityStarting(from: start, to: now, to: .main) { activities, _ in
+                guard let latest = activities?.last else {
+                    once.resume(nil)
+                    return
+                }
+                let kind = if latest.walking { "walking" }
+                    else if latest.running { "running" }
+                    else if latest.automotive { "in a vehicle" }
+                    else if latest.cycling { "cycling" }
+                    else if latest.stationary { "stationary" }
+                    else { "unknown" }
+
+                let confidence = switch latest.confidence {
+                case .high: "high"
+                case .medium: "medium"
+                default: "low"
+                }
+
+                once.resume(ActivityGuess(
+                    kind: kind,
+                    confidence: confidence,
+                    startedAt: latest.startDate.timeIntervalSince1970,
+                    sampleCount: activities?.count ?? 0
+                ))
+            }
+        }
+    }
+
     /// Stops the barometer. MainActor-isolated because `CMAltimeter` is not
     /// Sendable and must only be touched from here.
     func stopAltimeter() {
@@ -285,47 +342,58 @@ final class MotionManagerBox {
     /// The pedometer is a stored property rather than a local, because a local
     /// one is released as soon as the calling function returns and its
     /// completion handler may then never fire.
-    /// Set false while `queryPedometerData` is under investigation.
+    /// Retained as a kill switch. Core Motion's historical queries were the
+    /// source of a process-terminating crash once; if either regresses, this
+    /// keeps one sensor from taking down an app built to show the other forty.
+    nonisolated static let activityQueryEnabled = true
+
+    /// Steps, distance and floors over the last hour.
     ///
-    /// On an iPhone 14 Pro running iOS 26.6, with Motion & Fitness granted
-    /// (authorizationStatus == .authorized) and NSMotionUsageDescription
-    /// present in the bundle, this call terminates the process with SIGTRAP
-    /// before ever invoking its completion handler. Verified by bisection:
-    /// skipping the query alone lets the whole refresh finish normally.
+    /// Deliberately `nonisolated`, on a detached task, with its own
+    /// `CMPedometer` — and that is not a style choice, it is the difference
+    /// between working and terminating the process.
     ///
-    /// Quarantined rather than removed, because one crashing sensor should not
-    /// take down an app whose entire purpose is showing the other forty.
-    nonisolated static let pedometerQueryEnabled = false
+    /// Driven from a `@MainActor` context against a MainActor-owned pedometer,
+    /// every entry point killed the app with SIGTRAP before invoking its
+    /// handler: `queryPedometerData` over 24 hours, the same over 1 hour, and
+    /// `startUpdates`. Moving it off the main actor onto its own object fixed
+    /// all three. See docs/TODO.md for the full bisection.
+    ///
+    /// The object must outlive the query, hence `withExtendedLifetime`: a local
+    /// `CMPedometer` released mid-flight may never call its handler at all.
+    nonisolated func readSteps(timeout: Double = 5) async -> Steps? {
+        guard CMPedometer.isStepCountingAvailable() else { return nil }
 
-    func readSteps(timeout: Double = 5) async -> Steps? {
-        guard CMPedometer.isStepCountingAvailable(),
-              Self.pedometerQueryEnabled
-        else { return nil }
+        return await Task.detached(priority: .utility) { () -> Steps? in
+            let pedometer = CMPedometer()
+            let now = Date()
+            let start = now.addingTimeInterval(-3_600)
 
-        let now = Date()
-        let start = now.addingTimeInterval(-86_400)
+            let result: Steps? = await withCheckedContinuation { (continuation: CheckedContinuation<Steps?, Never>) in
+                let once = SingleResume(continuation)
 
-        return await withCheckedContinuation { (continuation: CheckedContinuation<Steps?, Never>) in
-            let once = SingleResume(continuation)
-
-            Task { @MainActor in
-                try? await Task.sleep(for: .seconds(timeout))
-                once.resume(nil)
-            }
-
-            pedometer.queryPedometerData(from: start, to: now) { data, _ in
-                guard let data else {
+                Task.detached {
+                    try? await Task.sleep(for: .seconds(timeout))
                     once.resume(nil)
-                    return
                 }
-                once.resume(Steps(
-                    count: data.numberOfSteps.intValue,
-                    distance: data.distance?.doubleValue,
-                    floors: data.floorsAscended?.intValue
-                ))
+
+                pedometer.queryPedometerData(from: start, to: now) { data, _ in
+                    guard let data else {
+                        once.resume(nil)
+                        return
+                    }
+                    once.resume(Steps(
+                        count: data.numberOfSteps.intValue,
+                        distance: data.distance?.doubleValue,
+                        floors: data.floorsAscended?.intValue
+                    ))
+                }
             }
-        }
+            withExtendedLifetime(pedometer) {}
+            return result
+        }.value
     }
+
 }
 
 /// Raw acceleration in three axes.
@@ -435,9 +503,6 @@ public struct LivePedometerSource: SensorSource {
         // then returning nothing is exactly the "silent failure" this project
         // exists to make impossible, and it made the app's own anomaly detector
         // flag a mystery whose cause is known and written down.
-        guard MotionManagerBox.pedometerQueryEnabled else {
-            return .unavailable(reason: .knownDefect)
-        }
         guard CMPedometer.isStepCountingAvailable() else {
             return .unavailable(reason: RuntimeEnvironment.current == .simulator
                 ? .simulator
@@ -608,6 +673,45 @@ public struct LiveHeadphoneMotionSource: SensorSource {
             SensorField("Head pitch", .number(motion.pitch * 180 / .pi, unit: "°")),
             SensorField("Head roll", .number(motion.roll * 180 / .pi, unit: "°")),
             SensorField("Head yaw", .number(motion.yaw * 180 / .pi, unit: "°")),
+        ])
+    }
+}
+/// What the OS has decided you were doing, and how sure it is.
+///
+/// Not a raw sensor: iOS classifies your movement continuously and keeps the
+/// answer, so this is a queryable history of your behaviour rather than a
+/// reading of the present moment.
+public struct LiveMotionActivitySource: SensorSource {
+    public let id: SensorID = "core_motion.activity"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        guard MotionManagerBox.activityQueryEnabled else {
+            return .unavailable(reason: .knownDefect)
+        }
+        guard CMMotionActivityManager.isActivityAvailable() else {
+            return .unavailable(reason: RuntimeEnvironment.current == .simulator
+                ? .simulator
+                : .hardwareAbsent)
+        }
+        return LiveAltimeterSource.map(CMMotionActivityManager.authorizationStatus())
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        await MotionManagerBox.shared.askForMotionAccess {
+            _ = await MotionManagerBox.shared.readActivity(timeout: 1)
+        }
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        guard let guess = await MotionManagerBox.shared.readActivity() else { return nil }
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Doing", .text(guess.kind)),
+            SensorField("Confidence", .text(guess.confidence)),
+            SensorField("Since", .time(guess.startedAt)),
+            SensorField("Changes in the last hour", .integer(guess.sampleCount)),
         ])
     }
 }
