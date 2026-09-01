@@ -11,6 +11,9 @@ struct GlasshouseApp: App {
                 Tab("Other apps", systemImage: "square.stack.3d.up") {
                     AttributionView()
                 }
+                Tab("Record", systemImage: "record.circle") {
+                    RecordingView()
+                }
             }
         }
     }

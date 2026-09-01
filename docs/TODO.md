@@ -47,32 +47,37 @@ against 26.6.
 
 ## Not blocked — just not done
 
-### Sensors with no adapter
+### Capabilities with no adapter
 
-See the README table for the full list. The ones worth doing next, in order of
-what they'd teach:
+Twelve of fifty-nine. Most are genuinely stuck rather than merely unwritten:
 
-1. **Bluetooth scan** — needs no entitlement, impossible to test without
-   hardware, and a rolling census of the devices around you is the most
-   striking thing the app could show.
-2. **HealthKit** — free-team signable and the deepest data on the phone.
-3. **Camera hardware detail** — lens aperture, focal length, ISO, and the
-   iOS 26 `nominalFocalLengthIn35mmFilm`, all readable without capturing a frame.
-4. **Vision on the photo library** — faces and text across the camera roll.
+| Capability | Why not yet |
+|---|---|
+| `core_location.significant_change`, `region_monitoring`, `visits` | Need **Always** location, a second grant beyond when-in-use |
+| `av.camera` | Capturing frames, as opposed to the hardware detail already built |
+| `arkit.face_tracking`, `arkit.scene_reconstruction` | Real tracking sessions; the depth-hardware facts are already reported under camera hardware |
+| `nearby_interaction.ranging` | Needs a second consenting device, so it cannot be verified alone even on hardware |
+| `calendar.write_only` | Straightforward; low value, since it exists to demonstrate a narrower permission |
+| `health.reproductive`, `health.sleep_and_mind` | Covered by the existing HealthKit grant; just more query code |
+| `attribution.app_privacy_report` | The importer is built; this row is the ledger entry for it |
+| `network.local` | Deliberately not doing — see `DECISIONS.md` D7 |
 
 ### Known gaps in what exists
 
-- **Values are unverified.** Every reading on device has been checked for
-  *shape* — right field count, plausible type — never for correctness. Nobody
-  has confirmed the battery percentage matches the phone.
-- **Replay implementations do not exist.** The architecture describes live,
-  fake, and replay; only live and fake are built. Recording real traces on
-  device and playing them back in the Simulator is the missing third.
+- **Values are unverified.** Every device reading has been checked for *shape*
+  — right field count, plausible type — never for correctness. Nobody has
+  confirmed the battery percentage matches what the phone shows.
+- **Four adapters are built but never run**: microphone, speech, Vision text,
+  Vision faces. They were installed while the phone was locked.
+- **Replay traces are recorded but never replayed.** The recorder and the
+  replay source both exist; nothing yet loads a trace back into the Simulator's
+  registry.
 
 ### Toolchain
 
 - **Xcode 26.2 against a phone on iOS 26.6.** The device-support mismatch has
-  not bitten, but the gap is real and only a toolchain upgrade closes it.
+  not bitten once, so this is lower priority than it first appeared — but only
+  a toolchain upgrade closes it, and CI already builds against 26.6.
 
 ---
 

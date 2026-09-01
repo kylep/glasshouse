@@ -123,6 +123,8 @@ struct ProjectInvariantTests {
          "reads the user-chosen NDJSON from fileImporter, which yields file:// URLs only"),
         ("Data(contentsOf:", "AttributionStore.swift",
          "reads the persisted history from Application Support"),
+        ("Data(contentsOf:", "TraceStore.swift",
+         "reads sensor recordings back from the app's own Documents directory"),
     ]
 
     @Test("Nothing in the project can reach the network")
@@ -143,9 +145,13 @@ struct ProjectInvariantTests {
                     violations.append("\(name): \(token)")
                 }
 
-                for entry in Self.localFileOnlyAPIs
-                where contents.contains(entry.token) && name != entry.allowedIn {
-                    violations.append("\(name): \(entry.token) (allowed only in \(entry.allowedIn))")
+                for token in Set(Self.localFileOnlyAPIs.map(\.token)) where contents.contains(token) {
+                    let permitted = Self.localFileOnlyAPIs
+                        .filter { $0.token == token }
+                        .map(\.allowedIn)
+                    if !permitted.contains(name) {
+                        violations.append("\(name): \(token) (allowed only in \(permitted.joined(separator: ", ")))")
+                    }
                 }
             }
         }
