@@ -25,6 +25,7 @@ swift run -q glasshouse-ledger plist > App/Generated/Info.plist
 echo "→ Regenerating ledger-derived docs"
 swift run -q glasshouse-ledger checklist > docs/device-verification.md
 swift run -q glasshouse-ledger classification > docs/data-classification.md
+python3 scripts/update-readme.py
 
 echo "→ Generating Glasshouse.xcodeproj"
 xcodegen generate

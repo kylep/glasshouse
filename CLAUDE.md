@@ -1,6 +1,6 @@
 # Glasshouse — working notes for Claude
 
-An iPhone app that reads every sensor it can legally reach and shows the user
+An iPhone app that reads every sensor it can reach and shows the user
 the readings. Deliberately invasive, deliberately honest about it.
 
 Read `docs/architecture.md` before making structural changes, and

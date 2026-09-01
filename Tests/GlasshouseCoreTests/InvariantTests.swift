@@ -256,6 +256,16 @@ struct ProjectInvariantTests {
 
         #expect(unknown.isEmpty, "adapters for capabilities not in the ledger: \(unknown)")
         #expect(declared.count >= 15, "expected to find the adapters, found \(declared.count)")
+
+        // ImplementedCapabilities is hand-written because GlasshouseSensors is
+        // iOS-only and invisible from here. This is what stops it going stale:
+        // it must match the adapters that actually exist, exactly.
+        let claimed = ImplementedCapabilities.ids
+        #expect(claimed == declared, """
+            ImplementedCapabilities disagrees with the adapter sources.
+            Claimed but absent: \(claimed.subtracting(declared).sorted())
+            Present but unclaimed: \(declared.subtracting(claimed).sorted())
+            """)
     }
 
     @Test("Captured personal data cannot be committed")
