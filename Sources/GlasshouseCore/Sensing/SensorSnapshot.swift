@@ -46,9 +46,11 @@ public struct SensorSnapshot: Sendable, Hashable {
         case .limited:
             return "You granted access to only part of this."
         case .needsPermission:
-            return capability.promptsUser
-                ? "Hasn't been asked for yet."
-                : "Not started yet."
+            return switch capability.gate {
+            case .asksOnce: "Hasn't been asked for yet."
+            case .tellsYouAfter: "Ready when you are — reading this will notify you."
+            case .neverAsks, .noAccessAtAll: "Not started yet."
+            }
         case .denied:
             return "You declined this. It can be changed in Settings."
         case .restricted:
@@ -65,9 +67,10 @@ public extension Array where Element == SensorSnapshot {
     /// Sensors currently producing readings.
     var reading: [SensorSnapshot] { filter(\.hasReading) }
 
-    /// Sensors that read without ever asking. The most instructive group.
-    var silentlyReading: [SensorSnapshot] {
-        filter { $0.hasReading && !$0.capability.promptsUser }
+    /// Sensors producing readings that iOS never asked about. The most
+    /// instructive group in the app.
+    var readingWithoutAsking: [SensorSnapshot] {
+        filter { $0.hasReading && $0.capability.gate == .neverAsks }
     }
 
     /// Anomalies worth a developer's attention: quiet with no good reason.

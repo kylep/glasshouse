@@ -162,19 +162,20 @@ func dataClassification() -> String {
         out += "\n## \(level.rawValue.capitalized) — \(rows.count) capabilities\n\n\(stance)\n\n"
 
         for row in rows {
-            let gate = row.promptsUser ? "prompts" : "**no prompt**"
+            let gate = row.gate == .neverAsks ? "**never asks**" : row.gate.shortLabel
             out += "- **\(row.displayName)** (`\(row.id)`, \(gate)) — \(row.reveals)\n"
         }
     }
 
-    let silent = CapabilityLedger.silent.count
+    let never = CapabilityLedger.neverAsked.count
     out += """
 
         ## The part worth noticing
 
-        \(silent) of \(CapabilityLedger.all.count) capabilities read without any
-        permission dialog at all. That set — not the sensors behind prompts — is
-        the most instructive thing this app has to show.
+        \(never) of \(CapabilityLedger.all.count) capabilities are read without iOS
+        ever asking. No dialog, nothing in Settings, no way to turn them off. That
+        set — not the sensors behind a permission — is the most instructive thing
+        this app has to show.
         """
     return out
 }
@@ -210,8 +211,9 @@ func readmeTable() -> String {
         return out
     }
 
-    let silent = all.filter { !$0.promptsUser && $0.tier == .free && $0.status != .blocked }
-    let prompting = all.filter { $0.promptsUser && $0.tier == .free && $0.status != .blocked }
+    let never = all.filter { $0.gate == .neverAsks && $0.tier == .free && $0.status != .blocked }
+    let notified = all.filter { $0.gate == .tellsYouAfter && $0.status != .blocked }
+    let asking = all.filter { $0.gate == .asksOnce && $0.tier == .free && $0.status != .blocked }
     let paid = all.filter { $0.tier > .free && $0.status != .blocked }
     let blocked = all.filter { $0.status == .blocked }
 
@@ -223,17 +225,24 @@ func readmeTable() -> String {
     signing tier, measured Simulator behaviour, and a source with a verification
     date — see [`Sources/GlasshouseCore/Capability/`](Sources/GlasshouseCore/Capability/).
 
-    ### Reads with no permission at all — \(silent.count)
+    ### iOS never asks — \(never.count)
 
-    Nothing prompts for these. No dialog, no Settings entry, no trace. This is the
-    most instructive group in the app, and the reason it opens on them.
+    No dialog, nothing under Settings → Privacy, and no way to turn them off. Any
+    app you install can read these the moment it launches. This is the most
+    instructive group, and the reason the app opens on it.
 
-    \(table(silent))
-    ### Behind a permission prompt — \(prompting.count)
+    \(table(never))
+    ### iOS tells you afterwards — \(notified.count)
 
-    Free to sign; each needs you to say yes first.
+    No permission is requested, but you do find out once it has happened. Not
+    consent — notification.
 
-    \(table(prompting))
+    \(table(notified))
+    ### iOS asks once — \(asking.count)
+
+    The familiar case: a dialog you can decline, and change later in Settings.
+
+    \(table(asking))
     ### Needs a paid Apple account — \(paid.count)
 
     Catalogued but out of reach on the current free signing tier.

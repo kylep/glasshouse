@@ -19,7 +19,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionmanager + measured: isAccelerometerAvailable == false, iOS 26.2 simulator",
             verified: "2026-08-30",
             notes: "isAccelerometerAvailable is false in the Simulator and no simctl facility injects motion data. Replay-only until device day."
@@ -32,7 +32,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionmanager + measured: isGyroAvailable == false",
             verified: "2026-08-30"
         ),
@@ -44,7 +44,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionmanager + measured: isMagnetometerAvailable == false",
             verified: "2026-08-30"
         ),
@@ -56,7 +56,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionmanager + measured: isDeviceMotionAvailable == false",
             verified: "2026-08-30"
         ),
@@ -68,7 +68,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmpedometer + measured: all six availability checks false",
             verified: "2026-08-30",
             notes: "Apple's docs are explicit that a missing NSMotionUsageDescription crashes the app rather than failing gracefully. Queries historical data the OS recorded independently of this app."
@@ -81,7 +81,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmaltimeter + measured: isRelativeAltitudeAvailable() == false",
             verified: "2026-08-30"
         ),
@@ -93,7 +93,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmaltimeter/isabsolutealtitudeavailable() + measured: false",
             verified: "2026-08-30",
             notes: "iOS 15+, and hardware-gated to iPhone 12 and later. Classified intimate rather than personal because floor-level position is effectively fine-grained location."
@@ -106,7 +106,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmmotionactivitymanager + measured: isActivityAvailable() == false",
             verified: "2026-08-30"
         ),
@@ -118,7 +118,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/coremotion/cmheadphonemotionmanager + measured: isDeviceMotionAvailable == false",
             verified: "2026-08-30",
             notes: "iOS 14+. Requires physically connected motion-capable AirPods, so device verification needs the hardware too."

@@ -118,7 +118,7 @@ struct GeneratedBuildInputTests {
             plistKeys: ["NSCompletelyUndescribedUsageDescription"],
             simulator: .worksFully,
             sensitivity: .ambient,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "test",
             verified: "2026-08-30"
         )
@@ -138,13 +138,13 @@ struct GeneratedBuildInputTests {
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .worksFully,
             sensitivity: .ambient,
-            promptsUser: false,          // contradicts declaring a plist key
+            gate: .neverAsks,            // contradicts declaring a plist key
             source: "test",
             verified: "2026-08-30"
         )
 
         let problems = CapabilityLedger.inconsistencies(in: [broken])
         #expect(problems.count == 1)
-        #expect(problems[0].contains("claims not to prompt"))
+        #expect(problems[0].contains("declares an Info.plist key"))
     }
 }

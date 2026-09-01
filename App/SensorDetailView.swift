@@ -80,9 +80,17 @@ struct SensorDetailView: View {
                 }
             }
 
+            Section {
+                Text(capability.gate.explanation)
+                    .font(.callout)
+                    .foregroundStyle(capability.gate == .neverAsks ? .orange : .secondary)
+            } header: {
+                Text("Does it ask?")
+            }
+
             Section("How it works") {
                 LabeledContent("Framework", value: capability.framework)
-                LabeledContent("Asks permission", value: capability.promptsUser ? "Yes" : "No")
+                LabeledContent("Consent", value: capability.gate.shortLabel)
                 LabeledContent("Sensitivity", value: capability.sensitivity.rawValue.capitalized)
                 LabeledContent("Costs", value: tierDescription(capability))
 

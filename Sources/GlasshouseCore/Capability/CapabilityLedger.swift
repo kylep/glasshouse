@@ -50,10 +50,19 @@ public enum CapabilityLedger {
         all.filter { !$0.isProvableInSimulator }.sorted { $0.id < $1.id }
     }
 
-    /// Capabilities that read without ever asking. The quietly alarming set,
-    /// and the most instructive thing the app has to show.
-    public static var silent: [Capability] {
-        all.filter { !$0.promptsUser }.sorted { $0.id < $1.id }
+    /// Capabilities iOS never asks about. The quietly alarming set, and the
+    /// most instructive thing the app has to show.
+    ///
+    /// Deliberately excludes `tellsYouAfter`: a banner is not consent, but it
+    /// is not nothing either, and folding it in here is what made the old
+    /// boolean misleading.
+    public static var neverAsked: [Capability] {
+        all.filter { $0.gate == .neverAsks }.sorted { $0.id < $1.id }
+    }
+
+    /// Capabilities behind a system permission dialog.
+    public static var behindADialog: [Capability] {
+        all.filter { $0.gate == .asksOnce }.sorted { $0.id < $1.id }
     }
 
     /// Every Info.plist usage-description key the app must declare, deduplicated
@@ -92,10 +101,15 @@ public enum CapabilityLedger {
             if row.reveals.isEmpty {
                 problems.append("'\(row.id)' does not say what it reveals")
             }
-            // A declared purpose string with no prompt is always an error: the
-            // key exists precisely to populate a dialog.
-            if !row.plistKeys.isEmpty && !row.promptsUser {
-                problems.append("'\(row.id)' declares an Info.plist key but claims not to prompt")
+            // A declared purpose string exists precisely to populate a system
+            // dialog, so declaring one while claiming no dialog is an error.
+            if !row.plistKeys.isEmpty && !row.gate.showsSystemDialog {
+                problems.append("'\(row.id)' declares an Info.plist key but its gate is '\(row.gate.rawValue)'")
+            }
+            // Nothing readable can be off limits, and nothing off limits can be
+            // readable — that pairing was the ambiguity the old flag created.
+            if row.gate == .noAccessAtAll && row.status != .blocked {
+                problems.append("'\(row.id)' is marked off limits but is not blocked")
             }
             // The converse only holds for capabilities this build can actually
             // reach. Some frameworks take consent through a system picker or an
@@ -103,7 +117,7 @@ public enum CapabilityLedger {
             // and Journaling Suggestions both prompt with no Info.plist key at
             // all — so the rule would produce false positives on rows that are
             // documentation rather than code.
-            if row.tier == .free, row.status != .blocked, row.promptsUser, row.plistKeys.isEmpty {
+            if row.tier == .free, row.status != .blocked, row.gate.showsSystemDialog, row.plistKeys.isEmpty {
                 problems.append("'\(row.id)' prompts the user but declares no Info.plist key")
             }
             // Blocked rows must explain themselves; that explanation is content.

@@ -116,7 +116,7 @@ public enum LedgerConsistentFakes {
             return .missingInSimulator(capability.id)
         }
 
-        if capability.promptsUser {
+        if capability.gate.showsSystemDialog {
             return .awaitingPermission(capability.id, thenReporting: placeholderFields(for: capability))
         }
 

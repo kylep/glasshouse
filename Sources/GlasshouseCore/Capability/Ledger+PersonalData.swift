@@ -17,7 +17,7 @@ extension CapabilityLedger {
             plistKeys: ["NSContactsUsageDescription"],
             simulator: .worksFully,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/contacts/cnauthorizationstatus/limited + measured: 6 seeded contacts with phones, emails, addresses",
             verified: "2026-08-30",
             notes: "iOS 18 added `.limited`, where the user picks specific contacts — a distinct third state that must not be collapsed into authorized or denied. Both paths are scriptable: `simctl privacy` exposes `contacts` and `contacts-limited` separately. Simulator ships the classic Kate Bell / John Appleseed set."
@@ -30,7 +30,7 @@ extension CapabilityLedger {
             plistKeys: ["NSCalendarsFullAccessUsageDescription"],
             simulator: .worksFully,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/bundleresources/information-property-list/nscalendarsusagedescription + measured: ~90 seeded events across several calendars",
             verified: "2026-08-30",
             notes: "iOS 17 split the old NSCalendarsUsageDescription (now deprecated) into full-access and write-only keys. Write-only genuinely means write-only: reads return nothing, including for events the app itself created. The richest seeded source in the Simulator."
@@ -43,7 +43,7 @@ extension CapabilityLedger {
             plistKeys: ["NSCalendarsWriteOnlyAccessUsageDescription"],
             simulator: .worksFully,
             sensitivity: .ambient,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/eventkit/ekauthorizationstatus",
             verified: "2026-08-30",
             notes: "iOS 17+. Included in the ledger as a teaching example rather than a data source: showing the user that a least-privilege option exists is part of the point. Note that presenting EKEventEditViewController on iOS 17+ needs no calendar access at all."
@@ -56,7 +56,7 @@ extension CapabilityLedger {
             plistKeys: ["NSRemindersFullAccessUsageDescription"],
             simulator: .worksFully,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/eventkit/ekauthorizationstatus",
             verified: "2026-08-30",
             notes: "iOS 17 split key, replacing the deprecated NSRemindersUsageDescription. If events were requested before authorization, call EKEventStore.reset() afterwards or the store keeps returning nothing."

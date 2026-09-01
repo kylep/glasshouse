@@ -126,9 +126,9 @@ struct LedgerSliceTests {
         #expect(!needsDevice.contains("contacts.all"))
     }
 
-    @Test("The silent set is exactly what reads without asking")
-    func silentCapabilities() {
-        let silent = Set(CapabilityLedger.silent.map(\.id))
+    @Test("The never-asked set is exactly what iOS lets through ungated")
+    func neverAskedCapabilities() {
+        let silent = Set(CapabilityLedger.neverAsked.map(\.id))
 
         // The quietly alarming ones — the app's most instructive category.
         #expect(silent.contains("pasteboard.shape"))
@@ -141,16 +141,23 @@ struct LedgerSliceTests {
         #expect(!silent.contains("core_location.position"))
         #expect(!silent.contains("contacts.all"))
         #expect(!silent.contains("health.vitals"))
+
+        // Nor the notifying clipboard read. It raises no dialog, which is why
+        // the old boolean swept it in here — but iOS does tell you afterwards,
+        // so calling it ungated was the misleading claim this split fixes.
+        #expect(!silent.contains("pasteboard.contents"))
+        #expect(CapabilityLedger["pasteboard.contents"]?.gate == .tellsYouAfter)
+
+        // Nor the ones no app may read. Same absence of a dialog, opposite reason.
+        #expect(!silent.contains("restricted.ambient_light"))
+        #expect(CapabilityLedger["restricted.ambient_light"]?.gate == .noAccessAtAll)
     }
 
-    @Test("A meaningful share of the ledger reads without asking")
-    func silentSetIsSubstantial() {
-        // The previous version of this test asserted that silent + prompting
-        // == total, which is just "a Bool is true or false" — it passed for an
-        // empty ledger and for an inverted one. This pins the actual claim the
-        // app makes on its front screen.
-        let silent = CapabilityLedger.silent.count
-        #expect(silent >= 15, "only \(silent) capabilities read without a prompt")
+    @Test("A meaningful share of the ledger is never asked about")
+    func neverAskedSetIsSubstantial() {
+        // Pins the claim the app makes on its front screen.
+        let silent = CapabilityLedger.neverAsked.count
+        #expect(silent >= 15, "only \(silent) capabilities are read without iOS asking")
         #expect(silent < CapabilityLedger.all.count / 2,
                 "most capabilities should still be behind a permission")
     }

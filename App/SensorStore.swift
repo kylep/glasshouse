@@ -37,20 +37,20 @@ final class SensorStore {
     /// The headline of the whole app: not what the phone can be made to reveal,
     /// but what it is revealing already, silently.
     var readingWithoutAsking: [SensorSnapshot] {
-        snapshots.filter { $0.hasReading && !$0.capability.promptsUser }
+        snapshots.filter { $0.hasReading && $0.capability.gate == .neverAsks }
     }
 
     var readingWithPermission: [SensorSnapshot] {
-        snapshots.filter { $0.hasReading && $0.capability.promptsUser }
+        snapshots.filter { $0.hasReading && $0.capability.gate != .neverAsks }
     }
 
     /// Sensors that could report something, once asked.
     ///
-    /// Keyed on runtime availability rather than on the ledger's `promptsUser`
-    /// flag. Those come apart: reading the clipboard's contents raises no system
-    /// dialog, so `promptsUser` is false, but the app still declines to do it
-    /// until the user asks. Filtering on the flag hid that row from every
-    /// section and made it unreachable in the UI.
+    /// Keyed on runtime availability rather than on the ledger's `gate`. Those
+    /// come apart: reading the clipboard's contents raises no system dialog, so
+    /// its gate is `.tellsYouAfter`, but the app still declines to do it until
+    /// the user asks. Filtering on the gate hid that row from every section and
+    /// made it unreachable in the UI.
     var awaitingPermission: [SensorSnapshot] {
         snapshots.filter { $0.availability == .needsPermission }
     }

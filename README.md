@@ -39,18 +39,18 @@ working adapter today. Each one records its exact `Info.plist` key, entitlement,
 signing tier, measured Simulator behaviour, and a source with a verification
 date — see [`Sources/GlasshouseCore/Capability/`](Sources/GlasshouseCore/Capability/).
 
-### Reads with no permission at all — 17
+### iOS never asks — 16
 
-Nothing prompts for these. No dialog, no Settings entry, no trace. This is the
-most instructive group in the app, and the reason it opens on them.
+No dialog, nothing under Settings → Privacy, and no way to turn them off. Any
+app you install can read these the moment it launches. This is the most
+instructive group, and the reason the app opens on it.
 
 | Sensor | What it reveals | Built |
 |---|---|---|
 | **Accessibility settings**<br><sub>`device.accessibility`</sub> | Whether you use VoiceOver, larger text, reduced motion, or increased contrast. | yes |
-| **Audio route**<br><sub>`av.audio_route`</sub> | What you are listening through — speaker, wired headphones, or a named Bluetooth device — with no permission prompt at all. | — |
+| **Audio route**<br><sub>`av.audio_route`</sub> | What you are listening through — speaker, wired headphones, or a named Bluetooth device. | — |
 | **Battery**<br><sub>`device.battery`</sub> | Charge level and whether you are plugged in. | yes |
 | **Cellular technology**<br><sub>`telephony.radio_technology`</sub> | Which cellular technology you are connected on — LTE, 5G, and so on. | — |
-| **Clipboard contents (notified)**<br><sub>`pasteboard.contents`</sub> | The actual text or URL on your clipboard. | yes |
 | **Clipboard contents (silent)**<br><sub>`pasteboard.shape`</sub> | Whether your clipboard holds a URL, a number, or text — and it can be checked without the 'pasted from' banner ever appearing. | yes |
 | **Faces in images**<br><sub>`vision.faces`</sub> | How many people are in each photo, where their faces are, and facial landmarks — computed entirely on device, with no permission beyond the photos themselves. | — |
 | **Language and region**<br><sub>`device.locale`</sub> | Your language, region, time zone, calendar, and measurement system. | yes |
@@ -61,12 +61,21 @@ most instructive group in the app, and the reason it opens on them.
 | **Text in images**<br><sub>`vision.text`</sub> | Every word visible in your photos — signs, documents, whiteboards, screenshots of private messages — turned into searchable text. | — |
 | **Thermal state**<br><sub>`device.thermal`</sub> | How hot the phone is, which tracks what it has been doing — gaming, navigating, charging in the sun. | yes |
 | **Uptime**<br><sub>`device.uptime`</sub> | How long since you last restarted. | — |
-| **Vendor identifier**<br><sub>`device.identifier_for_vendor`</sub> | A stable ID that links everything this developer's apps see you do — no permission, no prompt, and it survives until you delete every one of their apps. | yes |
+| **Vendor identifier**<br><sub>`device.identifier_for_vendor`</sub> | A stable ID that links everything this developer's apps see you do. | yes |
 | **What your other apps actually did**<br><sub>`attribution.app_privacy_report`</sub> | Which apps accessed your camera, microphone, photos, contacts, or location — and every network domain they contacted — with timestamps. | — |
 
-### Behind a permission prompt — 33
+### iOS tells you afterwards — 1
 
-Free to sign; each needs you to say yes first.
+No permission is requested, but you do find out once it has happened. Not
+consent — notification.
+
+| Sensor | What it reveals | Built |
+|---|---|---|
+| **Clipboard contents (notified)**<br><sub>`pasteboard.contents`</sub> | The actual text or URL on your clipboard. | yes |
+
+### iOS asks once — 33
+
+The familiar case: a dialog you can decline, and change later in Settings.
 
 | Sensor | What it reveals | Built |
 |---|---|---|

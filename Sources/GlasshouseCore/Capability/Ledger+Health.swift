@@ -20,7 +20,7 @@ extension CapabilityLedger {
             tier: .free,
             simulator: .worksWithCaveats,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/healthkit/data-types + measured: isHealthDataAvailable() == true, iOS 26.2 simulator",
             verified: "2026-08-30",
             notes: "Free-team signable — confirmed by both Apple's capability matrix and Xcode's own DVTPortalCachedPortalCapabilities.json. Nothing is seeded, so tests must write their own samples first. UNVERIFIED: whether the authorization sheet appears in a Simulator."
@@ -35,7 +35,7 @@ extension CapabilityLedger {
             tier: .free,
             simulator: .worksWithCaveats,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/healthkit/data-types",
             verified: "2026-08-30",
             notes: "Workout routes carry HKWorkoutRouteTypeIdentifier — a full GPS track per workout, which is location history arriving through a health permission."
@@ -50,7 +50,7 @@ extension CapabilityLedger {
             tier: .free,
             simulator: .worksWithCaveats,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/healthkit/hkstateofmind",
             verified: "2026-08-30",
             notes: "HKStateOfMind is iOS 18+."
@@ -65,7 +65,7 @@ extension CapabilityLedger {
             tier: .free,
             simulator: .worksWithCaveats,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/healthkit/data-types",
             verified: "2026-08-30",
             notes: "Listed separately from other vitals deliberately. If any category should be excluded from Phase 2 export by default, it is this one — see docs/phase-2-boundary.md."
@@ -80,7 +80,7 @@ extension CapabilityLedger {
             tier: .paid,
             simulator: .returnsNothing,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/bundleresources/entitlements/com.apple.developer.healthkit.access",
             verified: "2026-08-30",
             notes: "Requires the separate .healthkit.access entitlement array, and NSHealthRequiredReadAuthorizationTypeIdentifiers must list at least three types or authorization fails. Verifiable Health Records additionally needs an Apple request form."

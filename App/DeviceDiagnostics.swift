@@ -45,7 +45,7 @@ enum DeviceDiagnostics {
         }
 
         let readable = snapshots.filter(\.hasReading).count
-        let silent = snapshots.filter { $0.hasReading && !$0.capability.promptsUser }.count
+        let silent = snapshots.filter { $0.hasReading && $0.capability.gate == .neverAsks }.count
         let anomalies = snapshots.unexplained.count
         emit("END readable=\(readable) silentlyReadable=\(silent) anomalies=\(anomalies)")
         #endif

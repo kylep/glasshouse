@@ -18,7 +18,7 @@ extension CapabilityLedger {
             plistKeys: ["NSLocationWhenInUseUsageDescription"],
             simulator: .worksFully,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/corelocation/cllocationupdate + measured: locationServicesEnabled() == true",
             verified: "2026-08-30",
             notes: "Drive deterministically with `xcrun simctl location <dev> start --speed=N --interval=N lat,lon lat,lon`. Scenarios: City Run, City Bicycle Ride, Freeway Drive, Apple."
@@ -31,7 +31,7 @@ extension CapabilityLedger {
             plistKeys: ["NSLocationWhenInUseUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/corelocation/cllocationmanager + measured: headingAvailable() == false",
             verified: "2026-08-30",
             notes: "Needs the magnetometer, which the Simulator lacks. Heading is also the one part of Core Location with no modern async replacement — still CLLocationManager plus delegate."
@@ -47,7 +47,7 @@ extension CapabilityLedger {
             ],
             simulator: .worksWithCaveats,
             sensitivity: .ambient,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/corelocation/cllocationmanager/requesttemporaryfullaccuracyauthorization(withpurposekey:)",
             verified: "2026-08-30",
             notes: "iOS 14+. `simctl privacy location` sets the when-in-use bit only and has no accuracy dimension, so the reduced/precise distinction cannot be scripted. Worth surfacing prominently: most people do not know the toggle exists."
@@ -60,7 +60,7 @@ extension CapabilityLedger {
             plistKeys: ["NSLocationAlwaysAndWhenInUseUsageDescription", "NSLocationWhenInUseUsageDescription"],
             simulator: .worksWithCaveats,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/corelocation/cllocationmanager + measured: significantLocationChangeMonitoringAvailable() == true",
             verified: "2026-08-30",
             notes: "requestAlwaysAuthorization() silently does nothing unless BOTH plist keys are present — an easy and invisible mistake. Background delivery makes this a location history, which is why it is classified intimate."
@@ -73,7 +73,7 @@ extension CapabilityLedger {
             plistKeys: ["NSLocationAlwaysAndWhenInUseUsageDescription", "NSLocationWhenInUseUsageDescription"],
             simulator: .worksWithCaveats,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/corelocation/clmonitor + measured: isMonitoringAvailable(for: CLCircularRegion.self) == true",
             verified: "2026-08-30",
             notes: "UNVERIFIED whether enter/exit events actually fire when location is driven by `simctl location start`. The API reports available; delivery is unproven. Confirm before trusting a passing test."
@@ -86,7 +86,7 @@ extension CapabilityLedger {
             plistKeys: ["NSLocationAlwaysAndWhenInUseUsageDescription", "NSLocationWhenInUseUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/corelocation/clvisit",
             verified: "2026-08-30",
             notes: "Visit detection needs real dwell patterns and device motion, so it is very unlikely to fire in a Simulator. There is no availability API to check, which makes its silence indistinguishable from 'no visits yet' — treat as device-only."

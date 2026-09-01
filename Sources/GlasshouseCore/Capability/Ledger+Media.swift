@@ -14,7 +14,7 @@ extension CapabilityLedger {
             plistKeys: ["NSPhotoLibraryUsageDescription"],
             simulator: .worksFully,
             sensitivity: .personal,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/photokit/phauthorizationstatus + measured: 6 seeded assets present",
             verified: "2026-08-30",
             notes: "The key is NSPhotoLibraryUsageDescription for read/write; NSPhotoLibraryAddUsageDescription (not ...AddOnly...) is the add-only variant. `.limited` is a distinct third authorization state that must be handled separately from denied and authorized. Measured trap: `simctl privacy grant photos` writes TCC but PhotoKit still reads .notDetermined — drive the real prompt."
@@ -27,7 +27,7 @@ extension CapabilityLedger {
             plistKeys: ["NSPhotoLibraryUsageDescription"],
             simulator: .worksFully,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/photos/phasset/location + measured: seeded assets carry GPS",
             verified: "2026-08-30",
             notes: "PHAsset.location needs no location permission of its own — it comes with library access. The seeded simulator assets carry real coordinates (Iceland, San Francisco, Marin) plus full EXIF including camera make and model, and one carries a -180,-180 sentinel for the no-GPS case. This is the single most visceral demo in the app."
@@ -40,7 +40,7 @@ extension CapabilityLedger {
             plistKeys: ["NSCameraUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/bundleresources/information-property-list/nscamerausagedescription + measured: 0 video devices discovered",
             verified: "2026-08-30",
             notes: "Discovery returns an EMPTY ARRAY, not nil — `devices.first!` crashes rather than reporting no camera. The audio device that does appear is a stub with no formats. `simctl privacy camera` works despite being absent from the help text."
@@ -53,7 +53,7 @@ extension CapabilityLedger {
             plistKeys: ["NSMicrophoneUsageDescription"],
             simulator: .worksWithCaveats,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/avfaudio/avaudioapplication + measured: AVAudioEngine captured real host audio",
             verified: "2026-08-30",
             notes: "Genuinely works in the Simulator, routed from the Mac's microphone — measured non-zero amplitude. Use AVAudioApplication.requestRecordPermission (iOS 17+); the AVAudioSession method is deprecated."
@@ -62,10 +62,10 @@ extension CapabilityLedger {
             id: "av.audio_route",
             displayName: "Audio route",
             framework: "AVFoundation",
-            reveals: "What you are listening through — speaker, wired headphones, or a named Bluetooth device — with no permission prompt at all.",
+            reveals: "What you are listening through — speaker, wired headphones, or a named Bluetooth device. iOS never asks.",
             simulator: .worksWithCaveats,
             sensitivity: .identifying,
-            promptsUser: false,
+            gate: .neverAsks,
             source: "https://developer.apple.com/documentation/avfaudio/avaudiosession + measured: MicrophoneBuiltIn / Speaker, 48kHz",
             verified: "2026-08-30",
             notes: "No usage key and no prompt. The Simulator reports a simulated route rather than the Mac's real headphone or Bluetooth state, so route *changes* are not meaningfully testable here."
@@ -77,7 +77,7 @@ extension CapabilityLedger {
             reveals: "Every word visible in your photos — signs, documents, whiteboards, screenshots of private messages — turned into searchable text.",
             simulator: .worksFully,
             sensitivity: .personal,
-            promptsUser: false,
+            gate: .neverAsks,
             source: "https://developer.apple.com/documentation/vision + measured: RecognizeTextRequest succeeded in simulator",
             verified: "2026-08-30",
             notes: "Vision needs no permission of its own; getting the images does. Use the iOS 18+ Swift API (RecognizeTextRequest) rather than the legacy VNRequest form. This is the one Vision path that works in a Simulator."
@@ -89,7 +89,7 @@ extension CapabilityLedger {
             reveals: "How many people are in each photo, where their faces are, and facial landmarks — computed entirely on device, with no permission beyond the photos themselves.",
             simulator: .returnsNothing,
             sensitivity: .personal,
-            promptsUser: false,
+            gate: .neverAsks,
             source: "https://developer.apple.com/documentation/vision + measured: 'Could not create inference context'",
             verified: "2026-08-30",
             notes: "Every neural-engine-backed Vision request fails in the Simulator — faces, barcodes, saliency, body pose — while text recognition works. Observed on one Apple Silicon Mac; worth confirming elsewhere."
@@ -102,7 +102,7 @@ extension CapabilityLedger {
             plistKeys: ["NSSpeechRecognitionUsageDescription"],
             simulator: .worksWithCaveats,
             sensitivity: .intimate,
-            promptsUser: true,
+            gate: .asksOnce,
             source: "https://developer.apple.com/documentation/speech/sfspeechrecognizer + measured: isAvailable == true, supportsOnDeviceRecognition inconsistent",
             verified: "2026-08-30",
             notes: "SFSpeechRecognizer is not deprecated. The iOS 26 replacement, SpeechAnalyzer/SpeechTranscriber, reports isAvailable == false with zero supported locales in a Simulator — model assets are not provisioned. supportsOnDeviceRecognition varied between simulators, so treat it as non-deterministic here."

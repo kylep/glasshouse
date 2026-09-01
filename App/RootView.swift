@@ -10,10 +10,10 @@ struct RootView: View {
                 summary
 
                 section("Reading you right now",
-                        note: "No permission was asked for any of these.",
+                        note: "iOS never asked about any of these. There is no dialog, nothing in Settings, and no way to switch them off.",
                         store.readingWithoutAsking)
 
-                section("Reading you, with permission", note: nil,
+                section("Reading you, because you allowed it", note: nil,
                         store.readingWithPermission)
 
                 permissionSection
@@ -53,7 +53,7 @@ struct RootView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text(silent == 0
                      ? "Nothing is reading you yet."
-                     : "^[\(silent) thing](inflect: true) about you \(silent == 1 ? "is" : "are") readable right now, without anything asking.")
+                     : "^[\(silent) thing](inflect: true) about you \(silent == 1 ? "is" : "are") readable right now, and iOS never asked.")
                     .font(.headline)
 
                 Text("Glasshouse knows of \(total) ways an app can read this phone. Nothing here leaves the device.")
@@ -118,10 +118,10 @@ struct SensorRow: View {
             HStack {
                 Text(snapshot.capability.displayName)
                 Spacer()
-                if !snapshot.capability.promptsUser {
-                    Text("no prompt")
+                if snapshot.capability.gate != .asksOnce {
+                    Text(snapshot.capability.gate.shortLabel)
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(snapshot.capability.gate == .neverAsks ? .orange : .secondary)
                 }
             }
             if let first = snapshot.sample?.fields.first {

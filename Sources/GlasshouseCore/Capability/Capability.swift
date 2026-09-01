@@ -39,13 +39,12 @@ public struct Capability: Sendable, Hashable, Codable, Identifiable {
     /// How much it reveals, driving storage and default-collection policy.
     public let sensitivity: Sensitivity
 
-    /// Whether reading this triggers a system permission prompt.
+    /// What iOS does, if anything, before an app reads this.
     ///
     /// Deliberately separate from `plistKeys` being empty, because the two come
-    /// apart in both directions — Vision needs no permission at all, while
-    /// pasteboard *shape* can be read with a usage key but no prompt and no
-    /// banner.
-    public let promptsUser: Bool
+    /// apart in both directions — Vision needs no permission at all, while the
+    /// clipboard can be read with no dialog and still notify you afterwards.
+    public let gate: AccessGate
 
     /// Where the claims above were verified. A URL, or a local path such as
     /// `xcrun simctl help privacy`.
@@ -71,7 +70,7 @@ public struct Capability: Sendable, Hashable, Codable, Identifiable {
         tier: SigningTier = .free,
         simulator: SimulatorBehavior,
         sensitivity: Sensitivity,
-        promptsUser: Bool,
+        gate: AccessGate,
         source: String,
         verified: LedgerDate,
         status: ImplementationStatus = .notStarted,
@@ -86,7 +85,7 @@ public struct Capability: Sendable, Hashable, Codable, Identifiable {
         self.tier = tier
         self.simulator = simulator
         self.sensitivity = sensitivity
-        self.promptsUser = promptsUser
+        self.gate = gate
         self.source = source
         self.verified = verified
         self.status = status
