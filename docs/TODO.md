@@ -7,39 +7,7 @@ block anything.
 
 ## Blocked on Kyle
 
-### ~~1. Pedometer query terminates the process~~ — SOLVED 2026-09-01
-
-**Cause: calling `CMPedometer` from a `@MainActor` context.** Nothing to do
-with the API, the query window, or the usage description.
-
-Established by bisection on an iPhone 14 Pro, iOS 26.6, Motion & Fitness
-granted. Each row is a device run:
-
-| Configuration | Result |
-|---|---|
-| `queryPedometerData`, 24h window, MainActor, shared object | SIGTRAP |
-| `queryPedometerData`, 1h window, MainActor, shared object | SIGTRAP |
-| `startUpdates`, MainActor, shared object | SIGTRAP |
-| `queryPedometerData`, 1h, **detached task, own object** | **works** |
-
-In every failing case the completion handler was never invoked and the
-process died in under five seconds — before the internal timeout could fire —
-so Core Motion was terminating us rather than any Swift code trapping.
-
-Ruled out along the way: missing `NSMotionUsageDescription` (present in the
-shipped bundle), the historical-query pattern in general (`CMMotionActivityManager`
-queries fine from the same context), and the query window.
-
-**One honest caveat**: the working configuration changed two things at once —
-off the main actor *and* onto its own `CMPedometer`. Both are plausible causes
-and I did not isolate which. The fix is stable and reproducible; the precise
-mechanism is not established.
-
-`MotionManagerBox.readSteps` is `nonisolated`, runs on a detached task, owns
-its pedometer, and holds it with `withExtendedLifetime` for the duration of the
-query. Do not "tidy" it back onto the MainActor.
-
-### 2. A real App Privacy Report export
+### 1. A real App Privacy Report export
 
 Blocks the cross-app attribution feature, which is built and unverified — the
 decoder handles two candidate schemas because Apple documents neither, and the
@@ -49,7 +17,7 @@ Turn the report on now regardless (Settings → Privacy & Security → App Priva
 Report): it only records forward and keeps seven days, so every day it is off is
 data that cannot be recovered.
 
-### 3. Permissions still ungranted on the device
+### 2. Permissions still ungranted on the device
 
 Each is one tap in the app, and each unlocks a group:
 
@@ -83,11 +51,47 @@ what they'd teach:
 - **Replay implementations do not exist.** The architecture describes live,
   fake, and replay; only live and fake are built. Recording real traces on
   device and playing them back in the Simulator is the missing third.
-- **`LiveSystemStateSource` reports four ledger rows' worth of data under
-  `device.thermal`** — uptime, low-power mode, and memory belong in their own
-  rows.
 
 ### Toolchain
 
 - **Xcode 26.2 against a phone on iOS 26.6.** The device-support mismatch has
   not bitten, but the gap is real and only a toolchain upgrade closes it.
+
+---
+
+## Solved
+
+Kept because the evidence is worth more than the conclusion.
+
+### ~~Pedometer query terminates the process~~ — SOLVED 2026-09-01
+
+**Cause: calling `CMPedometer` from a `@MainActor` context.** Nothing to do
+with the API, the query window, or the usage description.
+
+Established by bisection on an iPhone 14 Pro, iOS 26.6, Motion & Fitness
+granted. Each row is a device run:
+
+| Configuration | Result |
+|---|---|
+| `queryPedometerData`, 24h window, MainActor, shared object | SIGTRAP |
+| `queryPedometerData`, 1h window, MainActor, shared object | SIGTRAP |
+| `startUpdates`, MainActor, shared object | SIGTRAP |
+| `queryPedometerData`, 1h, **detached task, own object** | **works** |
+
+In every failing case the completion handler was never invoked and the
+process died in under five seconds — before the internal timeout could fire —
+so Core Motion was terminating us rather than any Swift code trapping.
+
+Ruled out along the way: missing `NSMotionUsageDescription` (present in the
+shipped bundle), the historical-query pattern in general (`CMMotionActivityManager`
+queries fine from the same context), and the query window.
+
+**One honest caveat**: the working configuration changed two things at once —
+off the main actor *and* onto its own `CMPedometer`. Both are plausible causes
+and I did not isolate which. The fix is stable and reproducible; the precise
+mechanism is not established.
+
+`MotionManagerBox.readSteps` is `nonisolated`, runs on a detached task, owns
+its pedometer, and holds it with `withExtendedLifetime` for the duration of the
+query. Do not "tidy" it back onto the MainActor.
+

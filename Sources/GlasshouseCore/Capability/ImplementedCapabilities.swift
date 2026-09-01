@@ -26,6 +26,7 @@ public enum ImplementedCapabilities {
         "telephony.radio_technology",
 
         // Behind a permission prompt.
+        "bluetooth.scan",
         "calendar.events",
         "contacts.all",
         "core_location.heading",
