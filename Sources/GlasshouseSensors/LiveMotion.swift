@@ -1,6 +1,7 @@
 #if os(iOS)
 import Foundation
 import CoreMotion
+import AVFoundation
 import GlasshouseCore
 
 /// Plain values carried out of Core Motion.
@@ -17,6 +18,22 @@ struct Axes: Sendable {
 struct Altitude: Sendable {
     let pressure: Double
     let relativeAltitude: Double
+}
+
+struct Attitude: Sendable {
+    let pitch: Double
+    let roll: Double
+    let yaw: Double
+    let gravityX: Double
+    let gravityY: Double
+    let gravityZ: Double
+    let userAcceleration: Double
+}
+
+struct AbsoluteAltitude: Sendable {
+    let altitude: Double
+    let accuracy: Double
+    let precision: Double
 }
 
 struct Steps: Sendable {
@@ -39,12 +56,14 @@ final class MotionManagerBox {
     private let manager = CMMotionManager()
     private let altimeter = CMAltimeter()
     private let pedometer = CMPedometer()
+    private let headphones = CMHeadphoneMotionManager()
 
     /// Serialises altimeter reads. A single shared `CMAltimeter` cannot serve
     /// two overlapping `startRelativeAltitudeUpdates` calls: the second
     /// replaces the first's handler, and one of the two callers then waits
     /// forever.
     private var altimeterBusy = false
+    private var absoluteBusy = false
 
     private init() {
         manager.accelerometerUpdateInterval = 0.1
@@ -55,6 +74,9 @@ final class MotionManagerBox {
 
     var accelerometerAvailable: Bool { manager.isAccelerometerAvailable }
     var gyroscopeAvailable: Bool { manager.isGyroAvailable }
+    var magnetometerAvailable: Bool { manager.isMagnetometerAvailable }
+    var deviceMotionAvailable: Bool { manager.isDeviceMotionAvailable }
+    var headphoneMotionAvailable: Bool { headphones.isDeviceMotionAvailable }
 
     // MARK: - Reads
 
@@ -141,6 +163,98 @@ final class MotionManagerBox {
                 }
             }
         }
+    }
+
+    func readMagnetometer(attempts: Int = 12) async -> Axes? {
+        guard manager.isMagnetometerAvailable else { return nil }
+        manager.startMagnetometerUpdates()
+        defer { manager.stopMagnetometerUpdates() }
+
+        for _ in 0..<attempts {
+            if let f = manager.magnetometerData?.magneticField {
+                return Axes(x: f.x, y: f.y, z: f.z)
+            }
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        return nil
+    }
+
+    func readDeviceMotion(attempts: Int = 12) async -> Attitude? {
+        guard manager.isDeviceMotionAvailable else { return nil }
+        manager.startDeviceMotionUpdates()
+        defer { manager.stopDeviceMotionUpdates() }
+
+        for _ in 0..<attempts {
+            if let m = manager.deviceMotion {
+                let a = m.userAcceleration
+                return Attitude(
+                    pitch: m.attitude.pitch, roll: m.attitude.roll, yaw: m.attitude.yaw,
+                    gravityX: m.gravity.x, gravityY: m.gravity.y, gravityZ: m.gravity.z,
+                    userAcceleration: (a.x * a.x + a.y * a.y + a.z * a.z).squareRoot()
+                )
+            }
+            try? await Task.sleep(for: .milliseconds(25))
+        }
+        return nil
+    }
+
+    /// AirPods head tracking. Stops immediately after one sample — leaving it
+    /// running would keep the earbuds streaming motion indefinitely.
+    func readHeadphoneMotion(attempts: Int = 20) async -> Attitude? {
+        guard headphones.isDeviceMotionAvailable else { return nil }
+        headphones.startDeviceMotionUpdates()
+        defer { headphones.stopDeviceMotionUpdates() }
+
+        for _ in 0..<attempts {
+            if let m = headphones.deviceMotion {
+                let a = m.userAcceleration
+                return Attitude(
+                    pitch: m.attitude.pitch, roll: m.attitude.roll, yaw: m.attitude.yaw,
+                    gravityX: m.gravity.x, gravityY: m.gravity.y, gravityZ: m.gravity.z,
+                    userAcceleration: (a.x * a.x + a.y * a.y + a.z * a.z).squareRoot()
+                )
+            }
+            try? await Task.sleep(for: .milliseconds(50))
+        }
+        return nil
+    }
+
+    /// Height above sea level. Same single-resume discipline as the relative
+    /// barometer, and deliberately no `assumeIsolated` — `to: .main` runs on
+    /// the main thread but is not the MainActor's executor, and asserting
+    /// otherwise is a hard crash.
+    func readAbsoluteAltitude(timeout: Double = 3) async -> AbsoluteAltitude? {
+        guard CMAltimeter.isAbsoluteAltitudeAvailable(), !absoluteBusy else { return nil }
+        absoluteBusy = true
+        defer { absoluteBusy = false }
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<AbsoluteAltitude?, Never>) in
+            let once = SingleResume(continuation)
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(timeout))
+                if once.resume(nil) { MotionManagerBox.shared.stopAbsoluteAltimeter() }
+            }
+
+            altimeter.startAbsoluteAltitudeUpdates(to: .main) { data, error in
+                let reading: AbsoluteAltitude? = if error == nil, let data {
+                    AbsoluteAltitude(
+                        altitude: data.altitude,
+                        accuracy: data.accuracy,
+                        precision: data.precision
+                    )
+                } else {
+                    nil
+                }
+                if once.resume(reading) {
+                    Task { @MainActor in MotionManagerBox.shared.stopAbsoluteAltimeter() }
+                }
+            }
+        }
+    }
+
+    func stopAbsoluteAltimeter() {
+        altimeter.stopAbsoluteAltitudeUpdates()
     }
 
     /// Stops the barometer. MainActor-isolated because `CMAltimeter` is not
@@ -354,6 +468,147 @@ public struct LivePedometerSource: SensorSource {
         }
 
         return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: fields)
+    }
+}
+// MARK: - The rest of Core Motion
+
+/// The ambient magnetic field.
+///
+/// Indoors this is distorted by structural steel in ways stable enough to act
+/// as a location fingerprint — the same building reads the same way.
+public struct LiveMagnetometerSource: SensorSource {
+    public let id: SensorID = "core_motion.magnetometer"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        await MotionManagerBox.shared.magnetometerAvailable
+            ? .ready
+            : .unavailable(reason: RuntimeEnvironment.current == .simulator ? .simulator : .hardwareAbsent)
+    }
+
+    public func read() async -> SensorSample? {
+        guard let field = await MotionManagerBox.shared.readMagnetometer() else { return nil }
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("X", .number(field.x, unit: "µT")),
+            SensorField("Y", .number(field.y, unit: "µT")),
+            SensorField("Z", .number(field.z, unit: "µT")),
+            SensorField("Strength", .number((field.x * field.x + field.y * field.y + field.z * field.z).squareRoot(), unit: "µT")),
+        ])
+    }
+}
+
+/// The fused reading: how the phone is oriented and how it is being moved.
+///
+/// Cleaner than any single sensor because iOS separates gravity from the
+/// movement you cause, and correspondingly more revealing.
+public struct LiveDeviceMotionSource: SensorSource {
+    public let id: SensorID = "core_motion.device_motion"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        await MotionManagerBox.shared.deviceMotionAvailable
+            ? .ready
+            : .unavailable(reason: RuntimeEnvironment.current == .simulator ? .simulator : .hardwareAbsent)
+    }
+
+    public func read() async -> SensorSample? {
+        guard let motion = await MotionManagerBox.shared.readDeviceMotion() else { return nil }
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Pitch", .number(motion.pitch * 180 / .pi, unit: "°")),
+            SensorField("Roll", .number(motion.roll * 180 / .pi, unit: "°")),
+            SensorField("Yaw", .number(motion.yaw * 180 / .pi, unit: "°")),
+            SensorField("Gravity", .text(String(format: "%.2f, %.2f, %.2f", motion.gravityX, motion.gravityY, motion.gravityZ))),
+            SensorField("Your movement", .number(motion.userAcceleration, unit: "g")),
+            SensorField("Face up", .boolean(motion.gravityZ < -0.8)),
+        ])
+    }
+}
+
+/// Height above sea level, from the barometer plus a reference pressure.
+///
+/// Combined with a coordinate this identifies which floor of a building you
+/// are on, which is why it is classified alongside location rather than motion.
+public struct LiveAbsoluteAltitudeSource: SensorSource {
+    public let id: SensorID = "core_motion.altimeter_absolute"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        guard CMAltimeter.isAbsoluteAltitudeAvailable() else {
+            // iPhone 12 and later only, so this is a genuine hardware gate on
+            // older devices rather than a Simulator artefact.
+            return .unavailable(reason: RuntimeEnvironment.current == .simulator
+                ? .simulator
+                : .hardwareAbsent)
+        }
+        return LiveAltimeterSource.map(CMAltimeter.authorizationStatus())
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        await MotionManagerBox.shared.askForMotionAccess {
+            _ = await MotionManagerBox.shared.readAbsoluteAltitude(timeout: 1)
+        }
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        guard let reading = await MotionManagerBox.shared.readAbsoluteAltitude() else { return nil }
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Altitude", .number(reading.altitude, unit: "m")),
+            SensorField("Accuracy", .number(reading.accuracy, unit: "m")),
+            SensorField("Precision", .number(reading.precision, unit: "m")),
+        ])
+    }
+}
+
+/// The orientation of your head, streamed from AirPods.
+///
+/// Needs motion-capable AirPods actually connected, so on a phone with none
+/// paired this reports unavailable rather than silent — which is the honest
+/// answer, not a failure.
+public struct LiveHeadphoneMotionSource: SensorSource {
+    public let id: SensorID = "core_motion.headphone_motion"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        guard await MotionManagerBox.shared.headphoneMotionAvailable else {
+            return .unavailable(reason: RuntimeEnvironment.current == .simulator
+                ? .simulator
+                : .hardwareAbsent)
+        }
+
+        // `isDeviceMotionAvailable` says the API exists, not that any AirPods
+        // are connected — so it stays true with nothing in your ears, and the
+        // sensor then reports ready and delivers nothing forever. That is the
+        // silent failure this project exists to make impossible, so check the
+        // audio route for a wireless output before claiming readiness.
+        guard Self.wirelessHeadphonesConnected else {
+            return .unavailable(reason: .hardwareAbsent)
+        }
+
+        return LiveAltimeterSource.map(CMHeadphoneMotionManager.authorizationStatus())
+    }
+
+    /// Whether audio is currently routed to something wireless and head-worn.
+    static var wirelessHeadphonesConnected: Bool {
+        AVAudioSession.sharedInstance().currentRoute.outputs.contains { output in
+            switch output.portType {
+            case .bluetoothA2DP, .bluetoothHFP, .bluetoothLE, .headphones: true
+            default: false
+            }
+        }
+    }
+
+    public func read() async -> SensorSample? {
+        guard let motion = await MotionManagerBox.shared.readHeadphoneMotion() else { return nil }
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Head pitch", .number(motion.pitch * 180 / .pi, unit: "°")),
+            SensorField("Head roll", .number(motion.roll * 180 / .pi, unit: "°")),
+            SensorField("Head yaw", .number(motion.yaw * 180 / .pi, unit: "°")),
+        ])
     }
 }
 #endif

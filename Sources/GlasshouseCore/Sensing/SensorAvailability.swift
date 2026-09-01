@@ -82,7 +82,7 @@ public enum UnavailabilityReason: String, Sendable, Hashable, Codable {
         case .simulator:
             "This hardware doesn't exist in the Simulator."
         case .hardwareAbsent:
-            "This device doesn't have the hardware."
+            "The hardware for this isn't here — either the device lacks it, or the accessory isn't connected."
         case .entitlementMissing:
             "This build isn't signed with the required entitlement."
         case .osTooOld:
