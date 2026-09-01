@@ -294,4 +294,54 @@ public struct LiveHeadingSource: SensorSource {
         return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: fields)
     }
 }
+
+/// Whether you granted precise location or the reduced, neighbourhood-sized
+/// version — and the fact that an app can ask you to upgrade, one purpose at
+/// a time.
+///
+/// Worth surfacing prominently because most people do not know the toggle
+/// exists: the location dialog has a "Precise: On" control that is easy to
+/// miss, and declining it still leaves an app knowing roughly where you are.
+public struct LiveAccuracyAuthorizationSource: SensorSource {
+    public let id: SensorID = "core_location.accuracy_authorization"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        await MainActor.run {
+            switch LocationManagerBox.shared.status {
+            case .notDetermined: .needsPermission
+            case .denied: .denied
+            case .restricted: .restricted
+            // Deliberately `.ready` even under reduced accuracy: unlike the
+            // position reading, this capability's whole subject IS the
+            // reduction, so partial access is a complete answer here.
+            case .authorizedAlways, .authorizedWhenInUse: .ready
+            @unknown default: .needsPermission
+            }
+        }
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        _ = await LocationManagerBox.shared.requestWhenInUse()
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        let (status, accuracy) = await MainActor.run {
+            (LocationManagerBox.shared.status, LocationManagerBox.shared.accuracy)
+        }
+        guard status == .authorizedWhenInUse || status == .authorizedAlways else { return nil }
+
+        let precise = accuracy == .fullAccuracy
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Precision granted", .text(precise ? "precise" : "approximate")),
+            SensorField("Roughly accurate to", .text(precise ? "a few metres" : "a few kilometres")),
+            SensorField("Scope", .text(status == .authorizedAlways ? "always" : "while using the app")),
+            // The part people miss: an app can ask you to upgrade later, with
+            // its own reason attached, without going back to Settings.
+            SensorField("App can ask to upgrade", .boolean(!precise)),
+        ])
+    }
+}
 #endif

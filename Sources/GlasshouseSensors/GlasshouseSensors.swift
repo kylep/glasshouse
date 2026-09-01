@@ -45,6 +45,7 @@ public enum GlasshouseSensors {
             // Behind a permission dialog.
             LiveLocationSource(),
             LiveHeadingSource(),
+            LiveAccuracyAuthorizationSource(),
             LivePhotoLibrarySource(),
             LivePhotoLocationSource(),
             LiveBluetoothScanSource(),

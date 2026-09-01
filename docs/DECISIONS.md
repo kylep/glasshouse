@@ -158,3 +158,27 @@ app ever gains background behaviour, this becomes a real constraint rather than 
 free win.
 
 ---
+
+## D7 — Local network scanning stays unimplemented, on purpose
+
+**Decided:** `network.local` gets no adapter in this phase, despite being
+catalogued and despite `NSLocalNetworkUsageDescription` already shipping.
+
+**Why:** discovering devices on the LAN means sending mDNS and Bonjour traffic.
+That is packets leaving the device, which the project's no-egress invariant
+forbids — and `NWBrowser` is on the banned list precisely so this cannot be
+added absent-mindedly.
+
+The invariant could be relaxed for it. I would rather not: "nothing leaves the
+device" is the strongest claim this app makes, and the moment it acquires an
+exception for one convenient case it becomes a claim with a footnote. Local
+network discovery is also the one sensor whose readings are about *other
+people's* hardware on a shared network, which makes it the worst candidate for
+the first exception.
+
+**Confidence:** medium. A reasonable person would say multicast on your own LAN
+is not "leaving the device" in any meaningful sense, and they would have a point.
+
+**Reversal:** add `NWBrowser` to the allowlist in `InvariantTests`, alongside
+the existing `NWPathMonitor` carve-out, and write the adapter. The ledger row,
+the usage description, and the research are all already there.
