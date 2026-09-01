@@ -3,7 +3,7 @@
 /// Every live sensor path is gated on this. The simulator can exercise roughly
 /// two of the app's data sources for real, so the replay implementations are
 /// the primary development surface rather than a testing convenience.
-public enum RuntimeEnvironment: String, Sendable, Equatable {
+public enum RuntimeEnvironment: String, Sendable, Hashable, Codable, CaseIterable {
     /// A physical iPhone or iPad. The only place most sensors produce data.
     case device
 
