@@ -46,6 +46,18 @@ extension CapabilityLedger {
             notes: "Discovery returns an EMPTY ARRAY, not nil — `devices.first!` crashes rather than reporting no camera. The audio device that does appear is a stub with no formats. `simctl privacy camera` works despite being absent from the help text."
         ),
         Capability(
+            id: "av.camera_hardware",
+            displayName: "Camera hardware",
+            framework: "AVFoundation",
+            reveals: "How many cameras your phone has, their focal lengths and apertures, the largest photo they can take, and whether it has the depth hardware for face tracking or room scanning. iOS never asks — the permission covers taking pictures, not reading the specification.",
+            simulator: .returnsNothing,
+            sensitivity: .identifying,
+            gate: .neverAsks,
+            source: "https://developer.apple.com/documentation/avfoundation/avcapturedevice/discoverysession + measured: enumerates with authorizationStatus == .notDetermined",
+            verified: "2026-09-01",
+            notes: "Split from av.camera deliberately. The permission gates capturing frames; DiscoverySession enumerates hardware regardless of it, which is the finding worth showing. The exact set of lens configurations is also close to a device-model fingerprint. Returns an EMPTY ARRAY rather than nil when there are no cameras."
+        ),
+        Capability(
             id: "av.microphone",
             displayName: "Microphone",
             framework: "AVFoundation",

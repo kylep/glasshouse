@@ -6,7 +6,7 @@ Everything the Simulator cannot prove. Work this list on first device
 deploy; each item is something whose behaviour is currently assumed
 rather than observed.
 
-29 of 59 capabilities need hardware.
+30 of 60 capabilities need hardware.
 
 ## ARKit
 
@@ -19,6 +19,8 @@ rather than observed.
 
 - [ ] **Camera** (`av.camera`) — API present, no data delivered
       Discovery returns an EMPTY ARRAY, not nil — `devices.first!` crashes rather than reporting no camera. The audio device that does appear is a stub with no formats. `simctl privacy camera` works despite being absent from the help text.
+- [ ] **Camera hardware** (`av.camera_hardware`) — API present, no data delivered
+      Split from av.camera deliberately. The permission gates capturing frames; DiscoverySession enumerates hardware regardless of it, which is the finding worth showing. The exact set of lens configurations is also close to a device-model fingerprint. Returns an EMPTY ARRAY rather than nil when there are no cameras.
 
 ## CoreBluetooth
 

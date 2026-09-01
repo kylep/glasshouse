@@ -17,6 +17,7 @@ public enum ImplementedCapabilities {
         "device.screen_capture",
         "device.thermal",
         "av.audio_route",
+        "av.camera_hardware",
         "device.low_power_mode",
         "device.storage",
         "device.uptime",

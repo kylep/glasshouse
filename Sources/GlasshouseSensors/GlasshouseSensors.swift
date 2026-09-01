@@ -39,6 +39,7 @@ public enum GlasshouseSensors {
             LiveUptimeSource(),
             LiveLowPowerModeSource(),
             LiveAudioRouteSource(),
+            LiveCameraHardwareSource(),
             LiveRadioTechnologySource(),
 
             // Behind a permission dialog.

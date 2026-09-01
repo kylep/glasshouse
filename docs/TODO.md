@@ -5,26 +5,42 @@ block anything.
 
 ---
 
-## Blocked on Kyle
+## Your batch — do these whenever, in any order
 
-### 1. A real App Privacy Report export
+Nothing below blocks further work; each just unlocks verification.
 
-Blocks the cross-app attribution feature, which is built and unverified — the
-decoder handles two candidate schemas because Apple documents neither, and the
-fixtures are hand-authored rather than captured. See `DECISIONS.md` D3.
+### Taps in the app (one minute total)
 
-Turn the report on now regardless (Settings → Privacy & Security → App Privacy
-Report): it only records forward and keeps seven days, so every day it is off is
-data that cannot be recovered.
+Open Glasshouse, tap into the row, hit **Ask for permission**:
 
-### 2. Permissions still ungranted on the device
+| Row | Unlocks |
+|---|---|
+| **Bluetooth devices nearby** | The device census. Built and untested — needs no entitlement, impossible to test without hardware. |
+| **Photo library** | Also unlocks **Photo locations** — the EXIF map, the app's best demonstration, still only run against simulator fixtures. |
+| **Reminders** | Separate grant from calendar. |
+| **Clipboard contents (notified)** | The banner half of the clipboard pair. App-level consent, not a system dialog. |
 
-Each is one tap in the app, and each unlocks a group:
+Granting Photos covers both photo rows in one tap; iOS grants per permission,
+not per sensor.
 
-- **Photos** — unlocks the library and photo locations. The EXIF map is the
-  app's best demonstration and has still only run against simulator fixtures.
-- **Reminders** — separate grant from calendar.
-- **Clipboard (notified)** — app-level consent, not a system dialog.
+### Two minutes in Settings
+
+**Turn on the App Privacy Report** — Settings → Privacy & Security → App Privacy
+Report. It only records forward and keeps seven days, so every day it is off is
+data that cannot be recovered later. This blocks the cross-app attribution
+feature, which is built but unverified: the decoder handles two candidate
+schemas because Apple documents neither, and the fixtures are hand-authored
+rather than captured. See `DECISIONS.md` D3.
+
+Once it has a few days of data, export it (share button on that screen) and drop
+the `.ndjson` somewhere local — **not in this repo**, which is public.
+
+### A decision, not a task
+
+**Xcode 26.6.** You are on 26.2 against a phone running 26.6. The device-support
+mismatch has not bitten once, so this is lower priority than it sounded
+yesterday — but only a toolchain upgrade closes it, and CI is already building
+against 26.6.
 
 ---
 

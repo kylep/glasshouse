@@ -60,11 +60,12 @@ Off until explicitly enabled.
 - **Text in images** (`vision.text`, **never asks**) — Every word visible in your photos — signs, documents, whiteboards, screenshots of private messages — turned into searchable text.
 - **Wi-Fi network name** (`wifi.ssid`, asks once) — The name and hardware address of the Wi-Fi network you are on, which maps to a physical place via public wardriving databases.
 
-## Identifying — 8 capabilities
+## Identifying — 9 capabilities
 
 Collected by default.
 
 - **Audio route** (`av.audio_route`, **never asks**) — What you are listening through — speaker, wired headphones, or a named Bluetooth device. iOS never asks.
+- **Camera hardware** (`av.camera_hardware`, **never asks**) — How many cameras your phone has, their focal lengths and apertures, the largest photo they can take, and whether it has the depth hardware for face tracking or room scanning. iOS never asks — the permission covers taking pictures, not reading the specification.
 - **Battery** (`device.battery`, **never asks**) — Charge level and whether you are plugged in. Historically a tracking signal precisely because it is granular, changes predictably, and needs no permission — browsers removed the equivalent web API for that reason.
 - **Vendor identifier** (`device.identifier_for_vendor`, **never asks**) — A stable ID that links everything this developer's apps see you do. iOS never asks, and it survives until you delete every one of their apps.
 - **Language and region** (`device.locale`, **never asks**) — Your language, region, time zone, calendar, and measurement system. Individually mundane; together a meaningful narrowing of who you are.
@@ -86,7 +87,7 @@ Collected by default.
 
 ## The part worth noticing
 
-20 of 59 capabilities are read without iOS
+21 of 60 capabilities are read without iOS
 ever asking. No dialog, nothing in Settings, no way to turn them off. That
 set — not the sensors behind a permission — is the most instructive thing
 this app has to show.

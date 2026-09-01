@@ -54,10 +54,13 @@ struct LedgerDateTests {
 
 @Suite("Capability ledger")
 struct CapabilityLedgerTests {
-    /// The date the ledger rows were authored. Staleness is measured against a
-    /// fixed date rather than "now" so the suite cannot start failing on a
-    /// calendar boundary with no code change.
-    static let authored: LedgerDate = "2026-08-30"
+    /// The most recent date any ledger row may claim to have been verified.
+    ///
+    /// A fixed date rather than "now", so the suite cannot start failing on a
+    /// calendar boundary with no code change — but that means **bump this when
+    /// adding a row verified later than it**. The failure is the point: it
+    /// forces a deliberate look at whether the new claim really was checked.
+    static let latestVerification: LedgerDate = "2026-09-01"
 
     @Test("The ledger is structurally consistent")
     func noInconsistencies() {
@@ -195,22 +198,22 @@ struct LedgerSliceTests {
 struct LedgerProvenanceTests {
     @Test("Nothing was verified in the future")
     func noFutureVerification() {
-        let authored = CapabilityLedgerTests.authored
+        let latest = CapabilityLedgerTests.latestVerification
         for row in CapabilityLedger.all {
-            #expect(row.verified <= authored, "'\(row.id)' claims verification after it was written")
+            #expect(row.verified <= latest, "'\(row.id)' claims verification later than the suite allows — bump latestVerification if that is genuine")
         }
     }
 
     @Test("No row is stale as of when it was authored")
     func freshWhenWritten() {
-        #expect(CapabilityLedger.stale(asOf: CapabilityLedgerTests.authored).isEmpty)
+        #expect(CapabilityLedger.stale(asOf: CapabilityLedgerTests.latestVerification).isEmpty)
     }
 
     @Test("Staleness is detected once the limit passes")
     func stalenessTriggers() {
         // 91 days after authoring, everything written that day should be flagged.
-        let later: LedgerDate = "2026-11-30"
-        #expect(CapabilityLedgerTests.authored.days(to: later) > 90)
+        let later: LedgerDate = "2026-12-31"
+        #expect(CapabilityLedgerTests.latestVerification.days(to: later) > 90)
         #expect(CapabilityLedger.stale(asOf: later).count == CapabilityLedger.all.count)
     }
 
