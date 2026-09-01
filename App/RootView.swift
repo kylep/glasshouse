@@ -39,6 +39,20 @@ struct RootView: View {
             .navigationTitle("Glasshouse")
             .refreshable { await store.refresh() }
             .task { if store.snapshots.isEmpty { await store.refresh() } }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        Task { await store.refresh() }
+                    } label: {
+                        if store.isRefreshing {
+                            ProgressView()
+                        } else {
+                            Label("Read again", systemImage: "arrow.clockwise")
+                        }
+                    }
+                    .disabled(store.isRefreshing)
+                }
+            }
         }
     }
 
@@ -65,6 +79,18 @@ struct RootView: View {
                           systemImage: "exclamationmark.triangle")
                         .font(.caption)
                         .foregroundStyle(.orange)
+                }
+
+                // Nothing here polls. Every value is a single reading taken at
+                // a moment, and saying when makes that honest rather than
+                // leaving stale numbers looking live.
+                if let last = store.lastRefresh {
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                        Text("Read \(last.formatted(date: .omitted, time: .standard)) — pull down or tap ↻ to read again")
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
                 }
             }
             .padding(.vertical, 4)

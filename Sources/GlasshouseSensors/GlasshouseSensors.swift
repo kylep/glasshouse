@@ -35,6 +35,11 @@ public enum GlasshouseSensors {
             LivePasteboardShapeSource(),
             LivePasteboardContentSource(),
             LiveNetworkPathSource(),
+            LiveStorageSource(),
+            LiveUptimeSource(),
+            LiveLowPowerModeSource(),
+            LiveAudioRouteSource(),
+            LiveRadioTechnologySource(),
 
             // Behind a permission dialog.
             LiveLocationSource(),

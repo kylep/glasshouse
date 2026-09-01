@@ -85,10 +85,12 @@ public struct LiveSystemStateSource: SensorSource {
         @unknown default: "unknown"
         }
 
+        // Uptime, low-power mode and storage have their own ledger rows and
+        // their own adapters. Reporting them here as well made one capability
+        // stand in for four, which quietly inflated what the app appeared to
+        // cover.
         return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
             SensorField("Thermal state", .text(thermal)),
-            SensorField("Low Power Mode", .boolean(info.isLowPowerModeEnabled)),
-            SensorField("Uptime", .number(info.systemUptime, unit: "s")),
             SensorField("Processors", .integer(info.processorCount)),
             SensorField("Memory", .number(Double(info.physicalMemory) / 1_073_741_824, unit: "GB")),
         ])

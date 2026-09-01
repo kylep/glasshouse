@@ -16,9 +16,14 @@ public enum ImplementedCapabilities {
         "device.locale",
         "device.screen_capture",
         "device.thermal",
+        "av.audio_route",
+        "device.low_power_mode",
+        "device.storage",
+        "device.uptime",
         "network.path",
         "pasteboard.contents",
         "pasteboard.shape",
+        "telephony.radio_technology",
 
         // Behind a permission prompt.
         "calendar.events",
