@@ -262,6 +262,17 @@ public struct LiveHeadingSource: SensorSource {
         }
     }
 
+    /// There is no separate compass permission. Heading declares the same
+    /// usage-description key as location, so this asks the location question —
+    /// and granting it here grants location too, and vice versa.
+    ///
+    /// Without this override the protocol default applied, which asks for
+    /// nothing and merely re-reads the current state: the button was inert.
+    public func requestAccess() async -> SensorAvailability {
+        _ = await LocationManagerBox.shared.requestWhenInUse()
+        return await availability()
+    }
+
     public func read() async -> SensorSample? {
         guard CLLocationManager.headingAvailable(),
               await LocationManagerBox.shared.requestHeading(),

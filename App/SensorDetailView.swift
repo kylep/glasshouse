@@ -76,7 +76,18 @@ struct SensorDetailView: View {
                     }
                     .disabled(isRequesting)
                 } footer: {
-                    Text("iOS will show its own dialog. You can decline, and this screen will say so.")
+                    let shared = CapabilityLedger.sharingPermission(with: sensorID)
+                    if shared.isEmpty {
+                        Text("iOS will show its own dialog. You can decline, and this screen will say so.")
+                    } else {
+                        Text("""
+                            iOS will show its own dialog. You can decline, and this screen will say so.
+
+                            There is no separate permission for this — saying yes also covers \
+                            \(shared.map(\.displayName).formatted(.list(type: .and))). \
+                            iOS grants access per permission, not per sensor.
+                            """)
+                    }
                 }
             }
 

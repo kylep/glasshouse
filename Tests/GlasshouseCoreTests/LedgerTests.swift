@@ -232,3 +232,59 @@ struct LedgerProvenanceTests {
         #expect(blocked.contains("restricted.other_app_permissions"))
     }
 }
+
+@Suite("Shared permissions")
+struct SharedPermissionTests {
+    @Test("Heading and location are one grant, not two")
+    func headingSharesLocation() {
+        // The bug this models: iOS has no separate compass permission, so the
+        // app offered to ask for something iOS would never ask about.
+        let shared = CapabilityLedger.sharingPermission(with: "core_location.heading").map(\.id)
+        #expect(shared.contains("core_location.position"))
+    }
+
+    @Test("Calendar and contacts really are separate grants")
+    func genuinelySeparateGrants() {
+        // The control case. These declare different usage-description keys and
+        // do each show their own dialog, which is why they behaved differently
+        // from the compass.
+        let calendarShares = CapabilityLedger.sharingPermission(with: "calendar.events").map(\.id)
+        #expect(!calendarShares.contains("contacts.all"))
+
+        let contactShares = CapabilityLedger.sharingPermission(with: "contacts.all").map(\.id)
+        #expect(contactShares.isEmpty)
+    }
+
+    @Test("One Motion & Fitness grant covers every Core Motion reader")
+    func motionIsOneGrant() {
+        let group = CapabilityLedger.permissionGroup(for: "core_motion.accelerometer")
+        #expect(group.contains("core_motion.gyroscope"))
+        #expect(group.contains("core_motion.pedometer"))
+        #expect(group.contains("core_motion.altimeter_relative"))
+        #expect(group.count >= 9, "expected all Core Motion readers, got \(group.count)")
+    }
+
+    @Test("The photo library and photo locations are one grant")
+    func photosShareOneGrant() {
+        let shared = CapabilityLedger.sharingPermission(with: "photos.library").map(\.id)
+        #expect(shared.contains("photos.asset_location"))
+    }
+
+    @Test("Sharing is symmetric, and never includes the capability itself")
+    func sharingIsSymmetric() {
+        for row in CapabilityLedger.all where !row.plistKeys.isEmpty {
+            for sibling in CapabilityLedger.sharingPermission(with: row.id) {
+                #expect(sibling.id != row.id, "'\(row.id)' lists itself as a sibling")
+                let back = CapabilityLedger.sharingPermission(with: sibling.id).map(\.id)
+                #expect(back.contains(row.id), "'\(row.id)' and '\(sibling.id)' disagree about sharing")
+            }
+        }
+    }
+
+    @Test("A capability with no usage key shares nothing")
+    func ungatedSharesNothing() {
+        // Battery needs no permission, so there is no grant to share.
+        #expect(CapabilityLedger.sharingPermission(with: "device.battery").isEmpty)
+        #expect(CapabilityLedger.permissionGroup(for: "device.battery") == ["device.battery"])
+    }
+}

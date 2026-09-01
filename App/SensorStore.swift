@@ -21,11 +21,21 @@ final class SensorStore {
         DeviceDiagnostics.report(snapshots)
     }
 
-    /// Asks for one sensor's permission, then re-reads just that sensor.
+    /// Asks for one sensor's permission, then re-reads everything that grant
+    /// covers — not just the sensor that was tapped.
+    ///
+    /// iOS grants per usage-description key, not per capability. Granting
+    /// location also grants the compass; granting Motion & Fitness grants all
+    /// nine Core Motion readers at once. Refreshing only the tapped row left
+    /// its siblings showing "hasn't been asked for yet" after they had in fact
+    /// been granted.
     func requestAccess(to id: SensorID) async {
         _ = await registry.source(for: id).requestAccess()
-        guard let updated = await registry.snapshot(id) else { return }
-        if let index = snapshots.firstIndex(where: { $0.capability.id == id }) {
+
+        for affected in CapabilityLedger.permissionGroup(for: id) {
+            guard let updated = await registry.snapshot(affected),
+                  let index = snapshots.firstIndex(where: { $0.capability.id == affected })
+            else { continue }
             snapshots[index] = updated
         }
     }

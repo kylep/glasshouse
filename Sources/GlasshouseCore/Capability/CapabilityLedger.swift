@@ -65,6 +65,31 @@ public enum CapabilityLedger {
         all.filter { $0.gate == .asksOnce }.sorted { $0.id < $1.id }
     }
 
+    /// Other capabilities that the same grant unlocks.
+    ///
+    /// iOS grants permission per *usage-description key*, not per capability,
+    /// and several capabilities share one. There is no separate compass
+    /// permission: heading and location both declare
+    /// `NSLocationWhenInUseUsageDescription`, so granting either grants both.
+    /// The same is true of the photo library and photo locations.
+    ///
+    /// Without this the app lies twice — it offers to ask for something iOS
+    /// will not ask about, and it leaves the sibling row looking un-granted
+    /// after the user has in fact granted it.
+    public static func sharingPermission(with id: SensorID) -> [Capability] {
+        guard let row = self[id], !row.plistKeys.isEmpty else { return [] }
+        let keys = Set(row.plistKeys)
+        return all
+            .filter { $0.id != id && !Set($0.plistKeys).isDisjoint(with: keys) }
+            .sorted { $0.id < $1.id }
+    }
+
+    /// Every capability a single grant covers, including the one asked for.
+    public static func permissionGroup(for id: SensorID) -> [SensorID] {
+        ([self[id]].compactMap { $0 } + sharingPermission(with: id))
+            .map(\.id).sorted()
+    }
+
     /// Every Info.plist usage-description key the app must declare, deduplicated
     /// and sorted. Drives Info.plist generation, so a capability cannot ship
     /// without its purpose string.
