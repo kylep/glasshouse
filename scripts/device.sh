@@ -26,13 +26,17 @@ echo "→ Device: $DEVICE   Team: $TEAM"
 ./scripts/bootstrap.sh >/dev/null
 
 echo "→ Building"
+# Explicit derived-data path, deliberately. Xcode's shared tree silently served
+# a cached binary for hours while reporting successful builds and installs —
+# every check passed and the phone kept running old code. An isolated tree per
+# project makes that failure impossible to reproduce.
 xcodebuild build -project Glasshouse.xcodeproj -scheme Glasshouse \
     -destination "platform=iOS,name=$DEVICE" \
+    -derivedDataPath .build/xcode \
     -allowProvisioningUpdates DEVELOPMENT_TEAM="$TEAM" \
     | (command -v xcbeautify >/dev/null 2>&1 && xcbeautify || cat)
 
-APP=$(find ~/Library/Developer/Xcode/DerivedData/Glasshouse-*/Build/Products/Debug-iphoneos \
-    -maxdepth 1 -name "Glasshouse.app" | head -1)
+APP=".build/xcode/Build/Products/Debug-iphoneos/Glasshouse.app"
 
 echo "→ Installing"
 xcrun devicectl device install app --device "$DEVICE" "$APP" >/dev/null

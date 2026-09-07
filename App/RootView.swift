@@ -16,43 +16,43 @@ struct RootView: View {
     /// section counts say more at a glance than the rows do, and opening one
     /// is a deliberate act.
     private static let collapsedByDefault: Set<String> = [
-        "Reading you right now",
-        "Reading you, because you allowed it",
-        "Waiting to be asked",
-        "You said no",
-        "Not available here",
-        "No app is allowed to read these",
+        "Always allowed on iOS",
+        "Permission required — granted",
+        "Permission required — pending",
+        "Access denied",
+        "Unavailable on this device",
+        "No public API exists",
         "Not built yet",
         "Not in this recording",
-        "Unexplained",
+        "Error",
     ]
 
     var body: some View {
         NavigationStack {
             List {
                 replayBanner
-                summary
+                statusLine
 
-                section("Reading you right now",
-                        note: "iOS never asked about any of these. There is no dialog, nothing in Settings, and no way to switch them off.",
+                section("Always allowed on iOS",
+                        note: "No permission exists for these. Any app can read them.",
                         matching(store.readingWithoutAsking))
 
-                section("Reading you, because you allowed it", note: nil,
+                section("Permission required — granted", note: nil,
                         matching(store.readingWithPermission))
 
                 permissionSection
 
-                section("You said no",
-                        note: "Declining is a real answer, and these stay listed rather than disappearing. Settings › Privacy & Security reverses any of them.",
+                section("Access denied",
+                        note: "Reversible in Settings › Privacy & Security.",
                         matching(store.denied))
 
-                section("Not available here",
+                section("Unavailable on this device",
                         note: RuntimeEnvironment.current == .simulator
                             ? "The Simulator has no such hardware. These need a real phone."
                             : "This device doesn't have the hardware.",
                         matching(store.unavailableHere))
 
-                section("No app is allowed to read these",
+                section("No public API exists",
                         note: "The sensor exists. The API doesn't.",
                         matching(store.impossible))
 
@@ -66,7 +66,7 @@ struct RootView: View {
                         matching(store.notBuiltYet))
 
                 if !matching(store.anomalies).isEmpty {
-                    section("Unexplained",
+                    section("Error",
                             note: "These claim to work and should work here, but reported nothing. Probably a bug.",
                             matching(store.anomalies))
                 }
@@ -132,49 +132,40 @@ struct RootView: View {
         }
     }
 
+    /// A slim status line rather than a headline card.
+    ///
+    /// The section titles already say what each group is, so a banner
+    /// summarising them was restating the list above the list — and the
+    /// original wording ("and iOS never asked") argued a case rather than
+    /// reporting a fact. What remains is only what the titles cannot tell you:
+    /// when this was read, and whether it is live.
     @ViewBuilder
-    private var summary: some View {
-        Section {
-            // Deliberately unfiltered: how much is readable right now is a fact
-            // about the phone, and it should not change as someone types.
-            let silent = store.readingWithoutAsking.count
-            let total = store.snapshots.count
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(silent == 0
-                     ? "Nothing is reading you yet."
-                     : "^[\(silent) thing](inflect: true) about you \(silent == 1 ? "is" : "are") readable right now, and iOS never asked.")
-                    .font(.headline)
-
-                Text("Glasshouse knows of \(total) ways an app can read this phone. Nothing here leaves the device.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-
-                if RuntimeEnvironment.current == .simulator, store.replaying == nil {
-                    Label("Running in the Simulator, where most sensors report nothing.",
-                          systemImage: "exclamationmark.triangle")
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                }
-
-                // Nothing here polls. Every value is a single reading taken at
-                // a moment, and saying when makes that honest rather than
-                // leaving stale numbers looking live.
-                if let last = store.lastRefresh {
-                    HStack(spacing: 4) {
-                        Image(systemName: store.isShowingCached ? "clock.arrow.circlepath" : "clock")
+    private var statusLine: some View {
+        if store.lastRefresh != nil || RuntimeEnvironment.current == .simulator {
+            Section {
+                VStack(alignment: .leading, spacing: 4) {
+                    if RuntimeEnvironment.current == .simulator, store.replaying == nil {
+                        Label("Simulator — most sensors report nothing here.",
+                              systemImage: "exclamationmark.triangle")
+                            .foregroundStyle(.orange)
+                    }
+                    if let last = store.lastRefresh {
                         if store.isShowingCached {
                             // Never let a value from last launch look current.
-                            Text("From your last visit, \(last.formatted(date: .omitted, time: .shortened)) — reading again now…")
+                            Label("From your last visit, \(last.formatted(date: .omitted, time: .shortened)) — reading again…",
+                                  systemImage: "clock.arrow.circlepath")
+                                .foregroundStyle(.orange)
                         } else {
-                            Text("Read \(last.formatted(date: .omitted, time: .standard)) — pull down or tap ↻ to read again")
+                            Label("Read \(last.formatted(date: .omitted, time: .standard))",
+                                  systemImage: "clock")
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .font(.caption2)
-                    .foregroundStyle(store.isShowingCached ? Color.orange : Color.secondary)
                 }
+                .font(.caption2)
+                .listRowInsets(EdgeInsets(top: 2, leading: 20, bottom: 2, trailing: 20))
             }
-            .padding(.vertical, 4)
+            .listRowBackground(Color.clear)
         }
     }
 
@@ -182,7 +173,7 @@ struct RootView: View {
     private var permissionSection: some View {
         if !matching(store.awaitingPermission).isEmpty {
             Section {
-                if isExpanded("Waiting to be asked") {
+                if isExpanded("Permission required — pending") {
                     ForEach(matching(store.awaitingPermission), id: \.capability.id) { snapshot in
                         NavigationLink {
                             SensorDetailView(sensorID: snapshot.capability.id, store: store)
@@ -192,10 +183,10 @@ struct RootView: View {
                     }
                 }
             } header: {
-                sectionHeader("Waiting to be asked",
+                sectionHeader("Permission required — pending",
                               count: matching(store.awaitingPermission).count)
             } footer: {
-                if isExpanded("Waiting to be asked") {
+                if isExpanded("Permission required — pending") {
                     Text("Tap one to see what it would reveal, then decide.")
                 }
             }
