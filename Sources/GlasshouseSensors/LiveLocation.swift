@@ -53,6 +53,28 @@ final class LocationManagerBox: NSObject, CLLocationManagerDelegate {
         return answered ?? status
     }
 
+    /// Escalates to Always, a second grant beyond when-in-use.
+    ///
+    /// iOS offers this upgrade only once, and only while when-in-use is already
+    /// held — asking cold does nothing at all, silently. So this refuses rather
+    /// than firing a request that cannot produce a dialog.
+    func requestAlways(timeout: Double = 60) async -> CLAuthorizationStatus {
+        guard status == .authorizedWhenInUse else { return status }
+
+        let answered = await withTimeout(seconds: timeout) {
+            await withCheckedContinuation { (continuation: CheckedContinuation<CLAuthorizationStatus?, Never>) in
+                let once = SingleResume(continuation)
+                Task { @MainActor in
+                    let box = LocationManagerBox.shared
+                    box.authorizationWaiters.append(once)
+                    box.manager.requestAlwaysAuthorization()
+                }
+            }
+        } ?? nil
+
+        return answered ?? status
+    }
+
     /// Asks for a fresh fix and waits for it, rather than reading whatever
     /// happened to be cached.
     ///
@@ -342,6 +364,146 @@ public struct LiveAccuracyAuthorizationSource: SensorSource {
             // its own reason attached, without going back to Settings.
             SensorField("App can ask to upgrade", .boolean(!precise)),
         ])
+    }
+}
+
+/// Movements between places, delivered even when the app is not running.
+///
+/// The significant-change service wakes an app in the background to hand it a
+/// new location, which is what turns a permission into a location history. The
+/// app does not have to be open, or even recently used.
+public struct LiveSignificantChangeSource: SensorSource {
+    public let id: SensorID = "core_location.significant_change"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        guard CLLocationManager.significantLocationChangeMonitoringAvailable() else {
+            return .unavailable(reason: RuntimeEnvironment.current == .simulator
+                ? .simulator
+                : .hardwareAbsent)
+        }
+        return await Self.alwaysState()
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        _ = await LocationManagerBox.shared.requestAlways()
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        guard await Self.alwaysState() == .ready else { return nil }
+
+        var fields: [SensorField] = [
+            SensorField("Available", .boolean(true)),
+            SensorField("Wakes the app in the background", .boolean(true)),
+        ]
+
+        if let location = await LocationManagerBox.shared.requestFix() {
+            fields.append(SensorField("Last known place", .coordinate(
+                latitude: location.coordinate.latitude,
+                longitude: location.coordinate.longitude
+            )))
+            fields.append(SensorField("Recorded", .time(location.timestamp.timeIntervalSince1970)))
+        }
+
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: fields)
+    }
+
+    /// Always authorization, reported as availability.
+    ///
+    /// When-in-use reports `.needsPermission`, not `.limited`. Limited means
+    /// partial access — some data, not all — and these three capabilities are
+    /// entirely about background delivery: with only the foreground grant they
+    /// return nothing whatsoever. Calling that "limited" claimed a reading was
+    /// possible and then produced none, which the app's own anomaly detector
+    /// flagged on the first device run.
+    ///
+    /// `needsPermission` is both accurate and actionable: the Always upgrade is
+    /// still askable, and the row appears where tapping it asks.
+    static func alwaysState() async -> SensorAvailability {
+        await MainActor.run {
+            switch LocationManagerBox.shared.status {
+            case .notDetermined, .authorizedWhenInUse: .needsPermission
+            case .denied: .denied
+            case .restricted: .restricted
+            case .authorizedAlways: .ready
+            @unknown default: .needsPermission
+            }
+        }
+    }
+}
+
+/// Places you stopped, and for how long.
+///
+/// Not a track of movement but a diary of destinations — home, work, the clinic
+/// you spent an hour at. iOS derives it by clustering long dwells, so it is
+/// inference rather than measurement, and it arrives whether or not the app is
+/// open.
+public struct LiveVisitsSource: SensorSource {
+    public let id: SensorID = "core_location.visits"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        await LiveSignificantChangeSource.alwaysState()
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        _ = await LocationManagerBox.shared.requestAlways()
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        guard await availability() == .ready else { return nil }
+
+        // Visits accumulate over hours of real dwelling, so a reading taken now
+        // reports the capability rather than a history. Saying that plainly
+        // beats an empty list that looks like a fault.
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Monitoring visits", .boolean(true)),
+            SensorField("What iOS records", .text("where you stopped and for how long")),
+            SensorField("Needs the app open", .boolean(false)),
+            SensorField("Builds up over", .text("hours of real dwelling, not on demand")),
+        ])
+    }
+}
+
+/// Notification when you enter or leave a place.
+///
+/// Twenty regions per app, monitored by the OS, delivered in the background.
+/// An app can therefore learn when you get home without watching you get there.
+public struct LiveRegionMonitoringSource: SensorSource {
+    public let id: SensorID = "core_location.region_monitoring"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        guard CLLocationManager.isMonitoringAvailable(for: CLCircularRegion.self) else {
+            return .unavailable(reason: RuntimeEnvironment.current == .simulator
+                ? .simulator
+                : .hardwareAbsent)
+        }
+        return await LiveSignificantChangeSource.alwaysState()
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        _ = await LocationManagerBox.shared.requestAlways()
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        guard await availability() == .ready else { return nil }
+
+        return await MainActor.run {
+            let monitored = LocationManagerBox.shared.manager.monitoredRegions.count
+            return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+                SensorField("Regions this app watches", .integer(monitored)),
+                SensorField("Limit per app", .integer(20)),
+                SensorField("Delivered in the background", .boolean(true)),
+                SensorField("What it reveals", .text("when you arrive somewhere, without tracking the journey")),
+            ])
+        }
     }
 }
 #endif

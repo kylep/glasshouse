@@ -29,7 +29,7 @@ enum DeviceDiagnostics {
     static func report(_ snapshots: [SensorSnapshot]) {
         #if DEBUG
         let environment = RuntimeEnvironment.current
-        emit("BEGIN environment=\(environment.rawValue) capabilities=\(snapshots.count)")
+        emit("BEGIN environment=\(environment.rawValue) capabilities=\(snapshots.count) build=\(Self.buildStamp)")
 
         for snapshot in snapshots.sorted(by: { $0.capability.id < $1.capability.id }) {
             // Field labels are static strings from the ledger, never values —
@@ -57,6 +57,13 @@ enum DeviceDiagnostics {
         emit("END readable=\(readable) silentlyReadable=\(silent) anomalies=\(anomalies) implausible=\(ReadingValidation.problems(in: snapshots).count)")
         #endif
     }
+
+    /// Identifies the binary that produced a report.
+    ///
+    /// Added after twenty minutes lost to a device running a stale build while
+    /// every check — source, compile, install, bundle id — said otherwise. A
+    /// report that cannot be matched to a binary is a report you cannot trust.
+    private static let buildStamp = "\(Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "?")-\(#fileID.hashValue & 0xFFFF)"
 
     private static func describe(_ availability: SensorAvailability) -> String {
         switch availability {
