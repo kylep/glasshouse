@@ -23,6 +23,7 @@ struct RootView: View {
         "Not available here",
         "No app is allowed to read these",
         "Not built yet",
+        "Not in this recording",
         "Unexplained",
     ]
 
@@ -55,7 +56,14 @@ struct RootView: View {
                         note: "The sensor exists. The API doesn't.",
                         matching(store.impossible))
 
-                section("Not built yet", note: nil, matching(store.notBuiltYet))
+                // During replay these are not unbuilt — they simply were not
+                // in the recording. Saying "not built yet" would misreport the
+                // app's own state, which is the failure mode it exists to show.
+                section(store.replaying == nil ? "Not built yet" : "Not in this recording",
+                        note: store.replaying == nil
+                            ? nil
+                            : "These sensors exist, but the recording being played back does not contain them.",
+                        matching(store.notBuiltYet))
 
                 if !matching(store.anomalies).isEmpty {
                     section("Unexplained",
@@ -142,7 +150,7 @@ struct RootView: View {
                     .font(.footnote)
                     .foregroundStyle(.secondary)
 
-                if RuntimeEnvironment.current == .simulator {
+                if RuntimeEnvironment.current == .simulator, store.replaying == nil {
                     Label("Running in the Simulator, where most sensors report nothing.",
                           systemImage: "exclamationmark.triangle")
                         .font(.caption)

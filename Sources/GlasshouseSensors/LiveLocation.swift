@@ -224,7 +224,19 @@ public struct LiveLocationSource: SensorSource {
     }
 
     public func read() async -> SensorSample? {
-        guard let location = await LocationManagerBox.shared.requestFix() else { return nil }
+        guard let location = await LocationManagerBox.shared.requestFix() else {
+            // Authorized, but no fix arrived. That is a fact about the moment —
+            // a Simulator with no simulated location, or a phone that has not
+            // got a lock yet — not a defect. Returning nil made the app's own
+            // anomaly detector call it "probably a bug", which was the app
+            // being wrong about itself in exactly the way it criticises.
+            return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+                SensorField("Fix", .text("none yet")),
+                SensorField("Why", .text(RuntimeEnvironment.current == .simulator
+                    ? "no simulated location is set — try: xcrun simctl location <device> set lat,lon"
+                    : "location is permitted, but the device has not got a fix yet")),
+            ])
+        }
         let reduced = await MainActor.run { LocationManagerBox.shared.accuracy } == .reducedAccuracy
 
         var fields: [SensorField] = [
