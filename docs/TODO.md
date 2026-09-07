@@ -85,6 +85,20 @@ Twelve of fifty-nine. Most are genuinely stuck rather than merely unwritten:
 
 Kept because the evidence is worth more than the conclusion.
 
+### ~~Search box at the top of the sensor list~~ — DONE 2026-09-01
+
+Searches what a sensor **reveals**, not just its name — "who is near me" finds
+Bluetooth, "where have I been" finds photo locations, "stairs" finds the
+barometer. None of those words appears in the name of the capability they find.
+
+Also searchable by consent state ("never asks"), sensitivity ("intimate"),
+framework, and identifier. Every word must match, so adding one always narrows.
+
+Sections survive filtering, because "which of these needed no permission" is
+the question the grouping answers. The headline count deliberately does not
+filter: how much is readable right now is a fact about the phone, not about
+what someone typed.
+
 ### ~~Pedometer query terminates the process~~ — SOLVED 2026-09-01
 
 **Cause: calling `CMPedometer` from a `@MainActor` context.** Nothing to do

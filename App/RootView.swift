@@ -4,6 +4,8 @@ import GlasshouseCore
 struct RootView: View {
     let store: SensorStore
 
+    @State private var query = ""
+
     var body: some View {
         NavigationStack {
             List {
@@ -12,10 +14,10 @@ struct RootView: View {
 
                 section("Reading you right now",
                         note: "iOS never asked about any of these. There is no dialog, nothing in Settings, and no way to switch them off.",
-                        store.readingWithoutAsking)
+                        matching(store.readingWithoutAsking))
 
                 section("Reading you, because you allowed it", note: nil,
-                        store.readingWithPermission)
+                        matching(store.readingWithPermission))
 
                 permissionSection
 
@@ -23,21 +25,27 @@ struct RootView: View {
                         note: RuntimeEnvironment.current == .simulator
                             ? "The Simulator has no such hardware. These need a real phone."
                             : "This device doesn't have the hardware.",
-                        store.unavailableHere)
+                        matching(store.unavailableHere))
 
                 section("No app is allowed to read these",
                         note: "The sensor exists. The API doesn't.",
-                        store.impossible)
+                        matching(store.impossible))
 
-                section("Not built yet", note: nil, store.notBuiltYet)
+                section("Not built yet", note: nil, matching(store.notBuiltYet))
 
-                if !store.anomalies.isEmpty {
+                if !matching(store.anomalies).isEmpty {
                     section("Unexplained",
                             note: "These claim to work and should work here, but reported nothing. Probably a bug.",
-                            store.anomalies)
+                            matching(store.anomalies))
                 }
             }
             .navigationTitle("Glasshouse")
+            .searchable(text: $query, prompt: "Search — try \"who is near me\"")
+            .overlay {
+                if !query.isEmpty, noMatches {
+                    ContentUnavailableView.search(text: query)
+                }
+            }
             .refreshable { await store.refresh() }
             .task { if store.snapshots.isEmpty { await store.refresh() } }
             .toolbar {
@@ -95,6 +103,8 @@ struct RootView: View {
     @ViewBuilder
     private var summary: some View {
         Section {
+            // Deliberately unfiltered: how much is readable right now is a fact
+            // about the phone, and it should not change as someone types.
             let silent = store.readingWithoutAsking.count
             let total = store.snapshots.count
 
@@ -133,9 +143,9 @@ struct RootView: View {
 
     @ViewBuilder
     private var permissionSection: some View {
-        if !store.awaitingPermission.isEmpty {
+        if !matching(store.awaitingPermission).isEmpty {
             Section {
-                ForEach(store.awaitingPermission, id: \.capability.id) { snapshot in
+                ForEach(matching(store.awaitingPermission), id: \.capability.id) { snapshot in
                     NavigationLink {
                         SensorDetailView(sensorID: snapshot.capability.id, store: store)
                     } label: {
@@ -148,6 +158,24 @@ struct RootView: View {
                 Text("Tap one to see what it would reveal, then decide.")
             }
         }
+    }
+
+    /// Whether the search excluded everything.
+    ///
+    /// Checked explicitly so an empty result says so, rather than rendering a
+    /// blank list that looks like the app failed to load.
+    private var noMatches: Bool {
+        store.snapshots.allSatisfy { !$0.capability.matches(query) }
+    }
+
+    /// Narrows a section to what matches the search, keeping the grouping.
+    ///
+    /// Filtering within sections rather than flattening to a result list is
+    /// deliberate: "which of these needed no permission" is the question the
+    /// grouping answers, and it should survive searching.
+    private func matching(_ snapshots: [SensorSnapshot]) -> [SensorSnapshot] {
+        guard !query.isEmpty else { return snapshots }
+        return snapshots.filter { $0.capability.matches(query) }
     }
 
     @ViewBuilder
