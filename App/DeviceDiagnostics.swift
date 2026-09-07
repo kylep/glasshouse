@@ -44,10 +44,17 @@ enum DeviceDiagnostics {
                 """.replacingOccurrences(of: "\n", with: ""))
         }
 
+        // Values that cannot be true, reported by name. This is the check that
+        // distinguishes "returned a number" from "returned a number that could
+        // be right" — the difference a shape test cannot see.
+        for problem in ReadingValidation.problems(in: snapshots) {
+            emit("IMPLAUSIBLE \(problem.description)")
+        }
+
         let readable = snapshots.filter(\.hasReading).count
         let silent = snapshots.filter { $0.hasReading && $0.capability.gate == .neverAsks }.count
         let anomalies = snapshots.unexplained.count
-        emit("END readable=\(readable) silentlyReadable=\(silent) anomalies=\(anomalies)")
+        emit("END readable=\(readable) silentlyReadable=\(silent) anomalies=\(anomalies) implausible=\(ReadingValidation.problems(in: snapshots).count)")
         #endif
     }
 

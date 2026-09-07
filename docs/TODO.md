@@ -63,9 +63,11 @@ Twelve of fifty-nine. Most are genuinely stuck rather than merely unwritten:
 
 ### Known gaps in what exists
 
-- **Values are unverified.** Every device reading has been checked for *shape*
-  — right field count, plausible type — never for correctness. Nobody has
-  confirmed the battery percentage matches what the phone shows.
+- **Values are plausibility-checked, not confirmed.** Every reading now passes
+  a physics check — gravity is 1g, pressure ~101kPa, coordinates on Earth — and
+  the device report carries `implausible=0`. That rules out unit-conversion
+  bugs, the likeliest class. It does NOT confirm the battery says 84% when the
+  phone says 84%; that still needs a human eye on both at once.
 - **Replay is end to end but unexercised on a real recording.** Record, save,
   share, load and play all exist and build; nobody has yet recorded a trace on
   the phone and played it back in a Simulator to confirm the round trip.
