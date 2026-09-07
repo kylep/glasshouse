@@ -35,7 +35,7 @@ struct AttributionView: View {
                     }
                 }
             }
-            .navigationTitle("Other apps")
+            .navigationTitle("Report")
             .fileImporter(
                 isPresented: $isImporting,
                 allowedContentTypes: [.json, .plainText, .data]

@@ -10,14 +10,17 @@ struct GlasshouseApp: App {
     var body: some Scene {
         WindowGroup {
             TabView {
-                Tab("This phone", systemImage: "iphone.gen3") {
+                Tab("Signals", systemImage: "waveform") {
                     RootView(store: store)
                 }
-                Tab("Other apps", systemImage: "square.stack.3d.up") {
+                Tab("Report", systemImage: "doc.text.magnifyingglass") {
                     AttributionView()
                 }
                 Tab("Record", systemImage: "record.circle") {
                     RecordingView(store: store)
+                }
+                Tab("Settings", systemImage: "gearshape") {
+                    SettingsView()
                 }
             }
         }
