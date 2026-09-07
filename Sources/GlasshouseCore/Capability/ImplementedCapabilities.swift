@@ -32,6 +32,8 @@ public enum ImplementedCapabilities {
         "calendar.events",
         "contacts.all",
         "health.activity",
+        "health.reproductive",
+        "health.sleep_and_mind",
         "health.vitals",
         "core_location.accuracy_authorization",
         "core_location.heading",

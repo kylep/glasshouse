@@ -58,7 +58,6 @@ Twelve of fifty-nine. Most are genuinely stuck rather than merely unwritten:
 | `arkit.face_tracking`, `arkit.scene_reconstruction` | Real tracking sessions; the depth-hardware facts are already reported under camera hardware |
 | `nearby_interaction.ranging` | Needs a second consenting device, so it cannot be verified alone even on hardware |
 | `calendar.write_only` | Straightforward; low value, since it exists to demonstrate a narrower permission |
-| `health.reproductive`, `health.sleep_and_mind` | Covered by the existing HealthKit grant; just more query code |
 | `attribution.app_privacy_report` | The importer is built; this row is the ledger entry for it |
 | `network.local` | Deliberately not doing — see `DECISIONS.md` D7 |
 
@@ -67,8 +66,6 @@ Twelve of fifty-nine. Most are genuinely stuck rather than merely unwritten:
 - **Values are unverified.** Every device reading has been checked for *shape*
   — right field count, plausible type — never for correctness. Nobody has
   confirmed the battery percentage matches what the phone shows.
-- **Four adapters are built but never run**: microphone, speech, Vision text,
-  Vision faces. They were installed while the phone was locked.
 - **Replay is end to end but unexercised on a real recording.** Record, save,
   share, load and play all exist and build; nobody has yet recorded a trace on
   the phone and played it back in a Simulator to confirm the round trip.

@@ -56,6 +56,8 @@ public enum GlasshouseSensors {
             LiveSpeechRecognitionSource(),
             LiveHealthVitalsSource(),
             LiveHealthActivitySource(),
+            LiveHealthSleepSource(),
+            LiveHealthReproductiveSource(),
             LiveCalendarSource(),
             LiveRemindersSource(),
 

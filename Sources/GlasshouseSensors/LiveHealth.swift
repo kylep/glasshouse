@@ -50,8 +50,16 @@ final class HealthStoreBox {
                 types.insert(type)
             }
         }
-        if let sleep = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) {
-            types.insert(sleep)
+        for identifier: HKCategoryTypeIdentifier in [
+            .sleepAnalysis, .mindfulSession,
+            .menstrualFlow, .ovulationTestResult, .sexualActivity, .pregnancy,
+        ] {
+            if let type = HKObjectType.categoryType(forIdentifier: identifier) {
+                types.insert(type)
+            }
+        }
+        if let mood = HKObjectType.stateOfMindType() as HKObjectType? {
+            types.insert(mood)
         }
         types.insert(HKObjectType.workoutType())
         return types
@@ -115,6 +123,46 @@ final class HealthStoreBox {
                 }
                 once.resume((sample.quantity.doubleValue(for: unit),
                              sample.endDate.timeIntervalSince1970))
+            }
+            store.execute(query)
+        }
+    }
+
+    /// Counts category samples — sleep, mindfulness, cycle tracking — over a
+    /// window, and reports the most recent one's value.
+    ///
+    /// Separate from the quantity query because category samples carry an
+    /// integer code rather than a measurement, and the code's meaning depends
+    /// on which category it came from.
+    func categorySamples(
+        _ identifier: HKCategoryTypeIdentifier,
+        days: Int = 30
+    ) async -> (count: Int, latestValue: Int?, latestAt: Double?)? {
+        guard let type = HKObjectType.categoryType(forIdentifier: identifier) else { return nil }
+
+        let end = Date()
+        let start = end.addingTimeInterval(-Double(days) * 86_400)
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end)
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<(count: Int, latestValue: Int?, latestAt: Double?)?, Never>) in
+            let once = SingleResume(continuation)
+
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(5))
+                once.resume(nil)
+            }
+
+            let sort = NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)
+            let query = HKSampleQuery(
+                sampleType: type, predicate: predicate,
+                limit: HKObjectQueryNoLimit, sortDescriptors: [sort]
+            ) { _, samples, _ in
+                let categories = (samples as? [HKCategorySample]) ?? []
+                once.resume((
+                    count: categories.count,
+                    latestValue: categories.first?.value,
+                    latestAt: categories.first?.endDate.timeIntervalSince1970
+                ))
             }
             store.execute(query)
         }
@@ -255,6 +303,137 @@ public struct LiveHealthActivitySource: SensorSource {
         }
 
         return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: fields)
+    }
+}
+/// When you sleep, how well, and — since iOS 18 — how you said you felt.
+///
+/// Sleep is among the most inferentially rich streams on the phone. A month of
+/// bedtimes reveals shift work, insomnia, a new baby, or a relationship
+/// changing, none of which anyone chose to record.
+public struct LiveHealthSleepSource: SensorSource {
+    public let id: SensorID = "health.sleep_and_mind"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return .unavailable(reason: RuntimeEnvironment.current == .simulator
+                ? .simulator
+                : .hardwareAbsent)
+        }
+        return await HealthStoreBox.shared.hasAsked ? .ready : .needsPermission
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        await HealthStoreBox.shared.requestAuthorization()
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        guard HKHealthStore.isHealthDataAvailable() else { return nil }
+        let box = await HealthStoreBox.shared
+
+        var fields: [SensorField] = []
+
+        if let sleep = await box.categorySamples(.sleepAnalysis), sleep.count > 0 {
+            fields.append(SensorField("Sleep records (30 days)", .integer(sleep.count)))
+            if let at = sleep.latestAt {
+                fields.append(SensorField("Most recent", .time(at)))
+            }
+            if let value = sleep.latestValue {
+                fields.append(SensorField("Last state", .text(Self.sleepState(value))))
+            }
+        }
+
+        if let mindful = await box.categorySamples(.mindfulSession), mindful.count > 0 {
+            fields.append(SensorField("Mindful sessions (30 days)", .integer(mindful.count)))
+        }
+
+        guard !fields.isEmpty else {
+            return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+                SensorField("Result", .text("nothing returned")),
+                SensorField("Why", .text("iOS never says whether a health read was denied or just empty")),
+            ])
+        }
+
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: fields)
+    }
+
+    /// `HKCategoryValueSleepAnalysis` raw values, named.
+    static func sleepState(_ value: Int) -> String {
+        switch value {
+        case 0: "in bed"
+        case 1: "asleep"
+        case 2: "awake"
+        case 3: "core sleep"
+        case 4: "deep sleep"
+        case 5: "REM sleep"
+        default: "unspecified (\(value))"
+        }
+    }
+}
+
+/// Cycle tracking, pregnancy, and sexual activity.
+///
+/// Deliberately a separate capability rather than folded into vitals. This is
+/// the category where the gap between "an app can read this" and "an app should
+/// read this" is widest, and in several jurisdictions it is legally
+/// consequential rather than merely private.
+///
+/// Reports counts and dates only — never the values themselves. Someone should
+/// be able to see that an app could reach this data without the app displaying
+/// their cycle back at them to make the point.
+public struct LiveHealthReproductiveSource: SensorSource {
+    public let id: SensorID = "health.reproductive"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return .unavailable(reason: RuntimeEnvironment.current == .simulator
+                ? .simulator
+                : .hardwareAbsent)
+        }
+        return await HealthStoreBox.shared.hasAsked ? .ready : .needsPermission
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        await HealthStoreBox.shared.requestAuthorization()
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        guard HKHealthStore.isHealthDataAvailable() else { return nil }
+        let box = await HealthStoreBox.shared
+
+        var present: [String] = []
+        var total = 0
+
+        for (identifier, label) in [
+            (HKCategoryTypeIdentifier.menstrualFlow, "cycle tracking"),
+            (.ovulationTestResult, "ovulation tests"),
+            (.sexualActivity, "sexual activity"),
+            (.pregnancy, "pregnancy"),
+        ] {
+            if let result = await box.categorySamples(identifier, days: 365), result.count > 0 {
+                present.append(label)
+                total += result.count
+            }
+        }
+
+        guard total > 0 else {
+            return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+                SensorField("Records found", .integer(0)),
+                SensorField("Why", .text("either nothing is logged, or iOS declined the read — it never says which")),
+            ])
+        }
+
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Records readable (1 year)", .integer(total)),
+            SensorField("Categories present", .text(present.joined(separator: ", "))),
+            // The point of the row, stated rather than implied.
+            SensorField("Values shown", .text("none — only that they are reachable")),
+        ])
     }
 }
 #endif
