@@ -6,6 +6,21 @@ struct RootView: View {
 
     @State private var query = ""
 
+    /// Sections the reader has collapsed.
+    ///
+    /// Tracks what is CLOSED rather than what is open, so a section added later
+    /// appears expanded by default rather than silently hidden.
+    @State private var collapsed: Set<String> = Self.collapsedByDefault
+
+    /// The reference sections start closed. What is reading you right now is
+    /// the app's argument and leads; what cannot be read is worth having, but
+    /// not worth scrolling past every time.
+    private static let collapsedByDefault: Set<String> = [
+        "Not available here",
+        "No app is allowed to read these",
+        "Not built yet",
+    ]
+
     var body: some View {
         NavigationStack {
             List {
@@ -145,17 +160,22 @@ struct RootView: View {
     private var permissionSection: some View {
         if !matching(store.awaitingPermission).isEmpty {
             Section {
-                ForEach(matching(store.awaitingPermission), id: \.capability.id) { snapshot in
-                    NavigationLink {
-                        SensorDetailView(sensorID: snapshot.capability.id, store: store)
-                    } label: {
-                        SensorRow(snapshot: snapshot)
+                if isExpanded("Waiting to be asked") {
+                    ForEach(matching(store.awaitingPermission), id: \.capability.id) { snapshot in
+                        NavigationLink {
+                            SensorDetailView(sensorID: snapshot.capability.id, store: store)
+                        } label: {
+                            SensorRow(snapshot: snapshot)
+                        }
                     }
                 }
             } header: {
-                Text("Waiting to be asked")
+                sectionHeader("Waiting to be asked",
+                              count: matching(store.awaitingPermission).count)
             } footer: {
-                Text("Tap one to see what it would reveal, then decide.")
+                if isExpanded("Waiting to be asked") {
+                    Text("Tap one to see what it would reveal, then decide.")
+                }
             }
         }
     }
@@ -178,23 +198,68 @@ struct RootView: View {
         return snapshots.filter { $0.capability.matches(query) }
     }
 
+    /// Whether a section is currently showing its rows.
+    ///
+    /// A section always opens while searching. Leaving it closed would hide
+    /// matches behind a collapsed header and make the search look broken.
+    private func isExpanded(_ title: String) -> Bool {
+        !query.isEmpty || !collapsed.contains(title)
+    }
+
     @ViewBuilder
     private func section(_ title: String, note: String?, _ snapshots: [SensorSnapshot]) -> some View {
         if !snapshots.isEmpty {
             Section {
-                ForEach(snapshots, id: \.capability.id) { snapshot in
-                    NavigationLink {
-                        SensorDetailView(sensorID: snapshot.capability.id, store: store)
-                    } label: {
-                        SensorRow(snapshot: snapshot)
+                if isExpanded(title) {
+                    ForEach(snapshots, id: \.capability.id) { snapshot in
+                        NavigationLink {
+                            SensorDetailView(sensorID: snapshot.capability.id, store: store)
+                        } label: {
+                            SensorRow(snapshot: snapshot)
+                        }
                     }
                 }
             } header: {
-                Text(title)
+                sectionHeader(title, count: snapshots.count)
             } footer: {
-                if let note { Text(note) }
+                if let note, isExpanded(title) { Text(note) }
             }
         }
+    }
+
+    /// A tappable header carrying the section's name and how many are in it.
+    ///
+    /// The count is the point as much as the collapsing: seeing "20" next to
+    /// "Reading you right now" states the app's whole argument before anyone
+    /// scrolls a single row.
+    private func sectionHeader(_ title: String, count: Int) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) {
+                if collapsed.contains(title) {
+                    collapsed.remove(title)
+                } else {
+                    collapsed.insert(title)
+                }
+            }
+        } label: {
+            HStack {
+                Image(systemName: isExpanded(title) ? "chevron.down" : "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(title)
+                Spacer()
+                Text("\(count)")
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        // Searching forces every section open, so offering a control that
+        // cannot do anything would be a lie.
+        .disabled(!query.isEmpty)
+        .accessibilityLabel("\(title), \(count) sensors")
+        .accessibilityHint(isExpanded(title) ? "Collapses this section" : "Expands this section")
     }
 }
 

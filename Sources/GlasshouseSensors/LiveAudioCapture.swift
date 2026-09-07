@@ -21,6 +21,13 @@ final class MicrophoneMeter {
     private let engine = AVAudioEngine()
     private init() {}
 
+    /// Kill switch while the post-grant crash is diagnosed.
+    ///
+    /// Granting the microphone made the app terminate on every launch, because
+    /// availability then reports .ready and read() runs the meter on each
+    /// refresh. One sensor must not take down an app built to show forty.
+    nonisolated static let meteringEnabled = false
+
     var permission: AVAudioApplication.recordPermission {
         AVAudioApplication.shared.recordPermission
     }
@@ -31,7 +38,7 @@ final class MicrophoneMeter {
 
     /// Listens for a moment and returns peak and average amplitude, 0...1.
     func measure(seconds: Double = 1.0) async -> (peak: Float, average: Float)? {
-        guard permission == .granted else { return nil }
+        guard permission == .granted, Self.meteringEnabled else { return nil }
 
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.record, mode: .measurement, options: [])
@@ -98,7 +105,12 @@ public struct LiveMicrophoneSource: SensorSource {
     public init() {}
 
     public func availability() async -> SensorAvailability {
-        switch await MicrophoneMeter.shared.permission {
+        // Reported honestly rather than as .ready — claiming readiness and
+        // returning nothing is the silent failure this project forbids.
+        guard MicrophoneMeter.meteringEnabled else {
+            return .unavailable(reason: .knownDefect)
+        }
+        return switch await MicrophoneMeter.shared.permission {
         case .undetermined: .needsPermission
         case .denied: .denied
         case .granted: .ready
