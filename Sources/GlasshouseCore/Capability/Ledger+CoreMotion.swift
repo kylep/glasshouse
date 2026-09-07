@@ -15,7 +15,7 @@ extension CapabilityLedger {
             id: "core_motion.accelerometer",
             displayName: "Accelerometer",
             framework: "CoreMotion",
-            reveals: "Every movement of the phone in three axes, at up to 100 samples a second. Enough to infer walking, driving, or which pocket it is in — and, in published research, enough to recover what is typed on a nearby keyboard.",
+            reveals: "Acceleration in three axes at up to 100 samples per second. Published research has used accelerometer data to infer activity, and to recover keystrokes typed on a nearby keyboard.",
             plistKeys: ["NSMotionUsageDescription"],
             simulator: .returnsNothing,
             sensitivity: .personal,

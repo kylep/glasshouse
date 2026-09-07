@@ -15,16 +15,16 @@ Off until explicitly enabled.
 - **Camera** (`av.camera`, asks once) — Live video from front and back cameras, plus depth data, and hardware detail like lens aperture, focal length, and ISO.
 - **Microphone** (`av.microphone`, asks once) — Live audio, and the ambient sound level even when nothing is being recorded or transcribed.
 - **Geofencing** (`core_location.region_monitoring`, asks once) — Notifies an app when you enter or leave a place it cares about — home, work, a specific shop — without the app running.
-- **Significant location change** (`core_location.significant_change`, asks once) — Your movements between places, delivered even when the app is not running — and it will relaunch the app in the background to deliver them.
-- **Visits** (`core_location.visits`, asks once) — Where you stopped and for how long, inferred by the OS. Not a track of movement but a diary of places — home, work, the clinic you spent an hour at.
+- **Significant location change** (`core_location.significant_change`, asks once) — Location updates when you move a significant distance. Delivered in the background, and iOS will relaunch the app to deliver them.
+- **Visits** (`core_location.visits`, asks once) — Places where you stopped and how long you stayed, derived by iOS from dwell time. Locations rather than routes.
 - **Absolute altitude** (`core_motion.altimeter_absolute`, asks once) — Height above sea level. Combined with a coordinate this identifies which floor of a building you are on.
 - **Activity and fitness** (`health.activity`, asks once) — Steps, distance, flights climbed, active and resting energy, exercise minutes, VO2 max, and workout history including GPS routes.
 - **Clinical records** (`health.clinical_records`, asks once) — Medical records synced from healthcare providers: conditions, medications, immunisations, lab results, procedures.
 - **Reproductive health** (`health.reproductive`, asks once) — Menstrual cycle, ovulation, pregnancy, and sexual activity — among the most sensitive categories on the device, and in some jurisdictions legally consequential.
 - **Sleep and state of mind** (`health.sleep_and_mind`, asks once) — When you sleep and how well, mindfulness sessions, and — since iOS 18 — logged mood and emotional state.
 - **Vital signs** (`health.vitals`, asks once) — Heart rate, heart rate variability, resting and walking heart rate, blood oxygen, respiratory rate, body temperature, and atrial fibrillation burden — much of it recorded continuously by a watch, going back years.
-- **Photo locations** (`photos.asset_location`, asks once) — Where each photo was taken. A camera roll is a location history that most people forget they are carrying — years of coordinates, timestamped, including home and workplace.
-- **Ambient light sensor** (`restricted.ambient_light`, off limits) — How bright the room is. Fine-grained enough to infer when you wake, when you sleep, and whether you are indoors — which is exactly why it is locked away.
+- **Photo locations** (`photos.asset_location`, asks once) — Where each photo was taken, and when. A camera roll spanning years contains a corresponding span of location data.
+- **Ambient light sensor** (`restricted.ambient_light`, off limits) — Ambient light level. No public API exposes it; the only interface is SensorKit, which requires an approved research entitlement.
 - **Journaling suggestions** (`restricted.journal_suggestions`, asks once) — The OS's own summary of your day — places visited, photos taken, workouts, music played, people contacted — assembled by iOS and offered to apps.
 - **App usage history** (`restricted.screen_time`, asks once) — How long you spend in each app, how often you pick up your phone, and which websites you visit.
 - **Raw research sensors** (`restricted.sensorkit`, asks once) — Twenty raw streams Apple reserves for medical research: PPG, ECG, wrist temperature, keyboard typing dynamics, phone and message usage patterns, ambient pressure.
@@ -34,12 +34,12 @@ Off until explicitly enabled.
 
 Off until explicitly enabled.
 
-- **Bluetooth devices nearby** (`bluetooth.scan`, asks once) — Every Bluetooth device around you — headphones, watches, cars, fitness trackers, other people's phones — with signal strength that estimates distance. A rolling census of who and what is near you.
-- **Calendar** (`calendar.events`, asks once) — Where you were and who you were with, past and future. Titles, attendees, locations, and recurrence — a diary that is often more revealing than location history.
-- **Contacts** (`contacts.all`, asks once) — Everyone you know: names, phone numbers, emails, street addresses, birthdays, employers, and relationships. This is data about other people, and none of them agreed to it.
+- **Bluetooth devices nearby** (`bluetooth.scan`, asks once) — Bluetooth devices advertising nearby — headphones, watches, cars, fitness trackers, phones — with signal strength, which approximates distance. Many advertise a name chosen by their owner.
+- **Calendar** (`calendar.events`, asks once) — Event titles, attendees, locations, dates and recurrence, past and future. Records where you were and who you were with.
+- **Contacts** (`contacts.all`, asks once) — Names, phone numbers, emails, street addresses, birthdays, employers, and relationships for everyone in your address book. The records describe other people.
 - **Compass heading** (`core_location.heading`, asks once) — Which way the phone is pointing, magnetic and true.
-- **Location** (`core_location.position`, asks once) — Where you are, to within a few metres, with altitude, speed, and course. Sampled over time it is the single most identifying stream on the device — four coarse points are enough to uniquely identify most people.
-- **Accelerometer** (`core_motion.accelerometer`, **never asks**) — Every movement of the phone in three axes, at up to 100 samples a second. Enough to infer walking, driving, or which pocket it is in — and, in published research, enough to recover what is typed on a nearby keyboard.
+- **Location** (`core_location.position`, asks once) — Coordinates to within a few metres, plus altitude, speed and course. Published research shows four approximate location points are enough to identify most people uniquely.
+- **Accelerometer** (`core_motion.accelerometer`, **never asks**) — Acceleration in three axes at up to 100 samples per second. Published research has used accelerometer data to infer activity, and to recover keystrokes typed on a nearby keyboard.
 - **Motion activity** (`core_motion.activity`, asks once) — What you are doing, classified by the OS: walking, running, cycling, driving, or stationary — with a confidence level, and queryable as history.
 - **Barometric altitude** (`core_motion.altimeter_relative`, asks once) — Air pressure in kilopascals and relative altitude change, precise enough to detect climbing a single flight of stairs.
 - **Device motion** (`core_motion.device_motion`, **never asks**) — A fused reading: attitude, gravity, user acceleration, rotation rate, and calibrated magnetic field. Cleaner than any single sensor and correspondingly more revealing.
@@ -47,17 +47,17 @@ Off until explicitly enabled.
 - **Headphone motion** (`core_motion.headphone_motion`, asks once) — The orientation of your head, streamed from AirPods. Where you are looking, and when you nod.
 - **Magnetometer** (`core_motion.magnetometer`, **never asks**) — The ambient magnetic field. Indoors this is distorted by building steel in ways that are stable enough to act as a location fingerprint.
 - **Pedometer** (`core_motion.pedometer`, asks once) — Steps, distance, pace, cadence, and floors climbed — including history recorded before this app was ever installed.
-- **Accessibility settings** (`device.accessibility`, **never asks**) — Whether you use VoiceOver, larger text, reduced motion, or increased contrast. These can imply disability, and no permission gates them.
+- **Accessibility settings** (`device.accessibility`, **never asks**) — Whether VoiceOver, larger text, reduced motion or increased contrast are enabled. These settings can correlate with disability.
 - **Precise nearby ranging** (`nearby_interaction.ranging`, asks once) — Distance and direction to another Apple device to within centimetres, using ultra-wideband.
 - **Devices on your network** (`network.local`, asks once) — Other machines on your home or office network — printers, TVs, speakers, laptops — which fingerprints the network itself and therefore the place.
 - **NFC tags** (`nfc.tag_reading`, asks once) — Data from NFC tags and cards held near the phone.
-- **Clipboard contents (notified)** (`pasteboard.contents`, tells you after) — The actual text or URL on your clipboard. Reading this does show you a banner — which is exactly the contrast worth seeing next to the silent version.
-- **Clipboard contents (silent)** (`pasteboard.shape`, **never asks**) — Whether your clipboard holds a URL, a number, or text — and it can be checked without the 'pasted from' banner ever appearing. An app can know you copied a link, silently.
+- **Clipboard contents (notified)** (`pasteboard.contents`, tells you after) — The text or URL currently on your clipboard. Reading it triggers the system paste banner.
+- **Clipboard contents (silent)** (`pasteboard.shape`, **never asks**) — Whether the clipboard holds a URL, a number, or text. Apple documents these checks as not triggering the paste banner.
 - **Photo library** (`photos.library`, asks once) — Every photo and video you have taken, when each was taken, whether you favourited it, and which are of the same person.
 - **Reminders** (`reminders.all`, asks once) — Your to-do lists, including location-triggered reminders that reveal the places you care about.
 - **Focus mode** (`restricted.focus_status`, asks once) — Whether you have notifications silenced — and nothing more. Not which Focus is on, just whether you are muted relative to this app.
 - **Faces in images** (`vision.faces`, **never asks**) — How many people are in each photo, where their faces are, and facial landmarks — computed entirely on device, with no permission beyond the photos themselves.
-- **Text in images** (`vision.text`, **never asks**) — Every word visible in your photos — signs, documents, whiteboards, screenshots of private messages — turned into searchable text.
+- **Text in images** (`vision.text`, **never asks**) — Text found in your photographs — signs, documents, whiteboards, screenshots — converted to searchable strings.
 - **Wi-Fi network name** (`wifi.ssid`, asks once) — The name and hardware address of the Wi-Fi network you are on, which maps to a physical place via public wardriving databases.
 
 ## Identifying — 9 capabilities
@@ -67,10 +67,10 @@ Collected by default.
 - **Audio route** (`av.audio_route`, **never asks**) — What you are listening through — speaker, wired headphones, or a named Bluetooth device. iOS never asks.
 - **Camera hardware** (`av.camera_hardware`, **never asks**) — How many cameras your phone has, their focal lengths and apertures, the largest photo they can take, and whether it has the depth hardware for face tracking or room scanning. iOS never asks — the permission covers taking pictures, not reading the specification.
 - **Battery** (`device.battery`, **never asks**) — Charge level and whether you are plugged in. Historically a tracking signal precisely because it is granular, changes predictably, and needs no permission — browsers removed the equivalent web API for that reason.
-- **Vendor identifier** (`device.identifier_for_vendor`, **never asks**) — A stable ID that links everything this developer's apps see you do. iOS never asks, and it survives until you delete every one of their apps.
+- **Vendor identifier** (`device.identifier_for_vendor`, **never asks**) — An identifier shared across every app from the same developer. It persists until all of their apps are removed from the device.
 - **Language and region** (`device.locale`, **never asks**) — Your language, region, time zone, calendar, and measurement system. Individually mundane; together a meaningful narrowing of who you are.
-- **Storage** (`device.storage`, **never asks**) — How much space you have free. Stable and finely grained enough to help fingerprint a device across apps.
-- **Uptime** (`device.uptime`, **never asks**) — How long since you last restarted. Combined with other signals, boot time is a well-known cross-app device fingerprint.
+- **Storage** (`device.storage`, **never asks**) — Free and total storage. Apple lists this as a required-reason API because it can be used for device fingerprinting.
+- **Uptime** (`device.uptime`, **never asks**) — Time since the last restart. Every app on the device computes the same value, and Apple lists boot time as a required-reason API because it can be used for fingerprinting.
 - **Network connection** (`network.path`, **never asks**) — Whether you are on Wi-Fi or cellular, whether the connection is metered, and whether you are in Low Data Mode. iOS never asks.
 - **Cellular technology** (`telephony.radio_technology`, **never asks**) — Which cellular technology you are connected on — LTE, 5G, and so on. Carrier identity used to be readable here and no longer is.
 

@@ -10,7 +10,7 @@ extension CapabilityLedger {
             id: "bluetooth.scan",
             displayName: "Bluetooth devices nearby",
             framework: "CoreBluetooth",
-            reveals: "Every Bluetooth device around you — headphones, watches, cars, fitness trackers, other people's phones — with signal strength that estimates distance. A rolling census of who and what is near you.",
+            reveals: "Bluetooth devices advertising nearby — headphones, watches, cars, fitness trackers, phones — with signal strength, which approximates distance. Many advertise a name chosen by their owner.",
             plistKeys: ["NSBluetoothAlwaysUsageDescription"],
             simulator: .unavailable,
             sensitivity: .personal,

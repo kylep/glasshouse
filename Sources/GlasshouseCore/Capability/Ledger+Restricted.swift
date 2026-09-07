@@ -11,7 +11,7 @@ extension CapabilityLedger {
             id: "restricted.ambient_light",
             displayName: "Ambient light sensor",
             framework: "SensorKit",
-            reveals: "How bright the room is. Fine-grained enough to infer when you wake, when you sleep, and whether you are indoors — which is exactly why it is locked away.",
+            reveals: "Ambient light level. No public API exposes it; the only interface is SensorKit, which requires an approved research entitlement.",
             entitlement: "com.apple.developer.sensorkit.reader.allow",
             tier: .unobtainable,
             simulator: .unavailable,
