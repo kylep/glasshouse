@@ -233,4 +233,52 @@ public struct LiveRemindersSource: SensorSource {
         ])
     }
 }
+/// Adding events without being able to read any.
+///
+/// Included as a teaching case rather than a data source. iOS 17 split calendar
+/// access in two, and write-only genuinely means write-only: an app holding it
+/// cannot read your calendar at all — not even the events it created itself.
+///
+/// Most apps that put something in your calendar could ask for this instead of
+/// full access. Almost none do, and the dialog does not tell you which one you
+/// are being asked for.
+public struct LiveCalendarWriteOnlySource: SensorSource {
+    public let id: SensorID = "calendar.write_only"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        switch EKEventStore.authorizationStatus(for: .event) {
+        case .notDetermined: .needsPermission
+        case .denied: .denied
+        case .restricted: .restricted
+        // Both grants satisfy this capability: full access is a superset of
+        // write-only, and reporting it as unavailable would be wrong.
+        case .writeOnly, .fullAccess: .ready
+        @unknown default: .needsPermission
+        }
+    }
+
+    public func requestAccess() async -> SensorAvailability {
+        let store = EKEventStore()
+        _ = try? await store.requestWriteOnlyAccessToEvents()
+        return await availability()
+    }
+
+    public func read() async -> SensorSample? {
+        let status = EKEventStore.authorizationStatus(for: .event)
+        guard status == .writeOnly || status == .fullAccess else { return nil }
+
+        let writeOnly = status == .writeOnly
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Granted", .text(writeOnly ? "write-only" : "full access")),
+            SensorField("Can add events", .boolean(true)),
+            SensorField("Can read your calendar", .boolean(!writeOnly)),
+            SensorField("Narrower option exists", .boolean(true)),
+            SensorField("Note", .text(writeOnly
+                ? "This app can add events and cannot see any of yours, including ones it created."
+                : "Full access was granted. Write-only would have been enough to add events.")),
+        ])
+    }
+}
 #endif

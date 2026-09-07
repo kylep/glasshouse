@@ -113,7 +113,10 @@ struct RootView: View {
                         .font(.headline)
                         .foregroundStyle(.orange)
 
-                    Text("From \(replay.name), captured on \(replay.recordedOn == .device ? "a phone" : "a simulator") · \(replay.sensors) sensors")
+                    // The filename was meaningless on a phone, where nobody
+                    // browses files. What matters is where it came from and how
+                    // much of it there is.
+                    Text("Cached · captured on \(replay.recordedOn == .device ? "a phone" : "a simulator") · \(replay.sensors) sensors")
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
