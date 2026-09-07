@@ -125,6 +125,8 @@ struct ProjectInvariantTests {
          "reads the persisted history from Application Support"),
         ("Data(contentsOf:", "TraceStore.swift",
          "reads sensor recordings back from the app's own Documents directory"),
+        ("Data(contentsOf:", "ReadingCacheFile.swift",
+         "reads the previous launch's readings from Application Support"),
     ]
 
     @Test("Nothing in the project can reach the network")

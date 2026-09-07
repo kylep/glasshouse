@@ -20,9 +20,22 @@ final class HealthStoreBox {
 
     let store = HKHealthStore()
 
-    /// Whether authorization has been requested this launch. HealthKit will not
-    /// say, so the app tracks its own asking rather than inferring.
-    private(set) var hasAsked = false
+    /// Whether authorization has ever been requested.
+    ///
+    /// Persisted, and that is not incidental. iOS refuses to report whether a
+    /// health READ was granted — `authorizationStatus` covers writes only — so
+    /// the app's own record of having asked is the only signal available.
+    ///
+    /// This was in-memory at first, which meant the row showed as ready
+    /// immediately after being granted and reverted to "hasn't been asked" on
+    /// the next launch. The permission was fine; the app had simply forgotten
+    /// asking for it.
+    private static let askedKey = "health.authorizationRequested"
+
+    var hasAsked: Bool {
+        get { UserDefaults.standard.bool(forKey: Self.askedKey) }
+        set { UserDefaults.standard.set(newValue, forKey: Self.askedKey) }
+    }
 
     private init() {}
 
@@ -46,9 +59,12 @@ final class HealthStoreBox {
 
     func requestAuthorization() async {
         guard HKHealthStore.isHealthDataAvailable() else { return }
-        hasAsked = true
         // Read-only: this app has no business writing to anyone's health record.
         try? await store.requestAuthorization(toShare: [], read: Self.typesToRead)
+
+        // Recorded after the call returns, so a request that threw does not
+        // leave the app believing it asked.
+        hasAsked = true
     }
 
     /// Counts samples of one quantity type over a window.

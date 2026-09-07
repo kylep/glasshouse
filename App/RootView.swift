@@ -12,13 +12,17 @@ struct RootView: View {
     /// appears expanded by default rather than silently hidden.
     @State private var collapsed: Set<String> = Self.collapsedByDefault
 
-    /// The reference sections start closed. What is reading you right now is
-    /// the app's argument and leads; what cannot be read is worth having, but
-    /// not worth scrolling past every time.
+    /// Everything starts closed. Fifty-one rows is a wall of text; the
+    /// section counts say more at a glance than the rows do, and opening one
+    /// is a deliberate act.
     private static let collapsedByDefault: Set<String> = [
+        "Reading you right now",
+        "Reading you, because you allowed it",
+        "Waiting to be asked",
         "Not available here",
         "No app is allowed to read these",
         "Not built yet",
+        "Unexplained",
     ]
 
     var body: some View {
@@ -62,7 +66,7 @@ struct RootView: View {
                 }
             }
             .refreshable { await store.refresh() }
-            .task { if store.snapshots.isEmpty { await store.refresh() } }
+            .task { await store.refresh() }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -145,11 +149,16 @@ struct RootView: View {
                 // leaving stale numbers looking live.
                 if let last = store.lastRefresh {
                     HStack(spacing: 4) {
-                        Image(systemName: "clock")
-                        Text("Read \(last.formatted(date: .omitted, time: .standard)) — pull down or tap ↻ to read again")
+                        Image(systemName: store.isShowingCached ? "clock.arrow.circlepath" : "clock")
+                        if store.isShowingCached {
+                            // Never let a value from last launch look current.
+                            Text("From your last visit, \(last.formatted(date: .omitted, time: .shortened)) — reading again now…")
+                        } else {
+                            Text("Read \(last.formatted(date: .omitted, time: .standard)) — pull down or tap ↻ to read again")
+                        }
                     }
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(store.isShowingCached ? Color.orange : Color.secondary)
                 }
             }
             .padding(.vertical, 4)

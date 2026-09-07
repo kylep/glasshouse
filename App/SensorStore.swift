@@ -11,7 +11,26 @@ final class SensorStore {
     private(set) var isRefreshing = false
     private(set) var lastRefresh: Date?
 
+    /// True while the list is showing values from a previous launch.
+    ///
+    /// The whole point of the cache is a fast first paint, but a stale reading
+    /// presented as a live one is exactly what this app criticises. Everything
+    /// that renders a value checks this, and the list says so at the top.
+    private(set) var isShowingCached = false
+
     private var registry = GlasshouseSensors.liveRegistry()
+
+    init() {
+        // Painting last launch's readings immediately beats a blank list and a
+        // spinner for the several seconds a full sweep takes — the Bluetooth
+        // scan alone is four of them.
+        if let cache = ReadingCacheFile.load(),
+           !cache.isStale(asOf: Date().timeIntervalSince1970) {
+            snapshots = cache.snapshots
+            lastRefresh = Date(timeIntervalSince1970: cache.capturedAt)
+            isShowingCached = true
+        }
+    }
 
     /// The recording currently driving the app, if any.
     ///
@@ -60,6 +79,14 @@ final class SensorStore {
         defer { isRefreshing = false }
         snapshots = await registry.snapshotAll()
         lastRefresh = Date()
+        isShowingCached = false
+
+        // Only live readings are cached. Persisting a replay would mean the
+        // next launch opened on someone else's recording presented as this
+        // phone's state.
+        if replaying == nil {
+            ReadingCacheFile.save(ReadingCache(snapshots, at: Date().timeIntervalSince1970))
+        }
         DeviceDiagnostics.report(snapshots)
     }
 
