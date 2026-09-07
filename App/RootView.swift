@@ -19,6 +19,7 @@ struct RootView: View {
         "Reading you right now",
         "Reading you, because you allowed it",
         "Waiting to be asked",
+        "You said no",
         "Not available here",
         "No app is allowed to read these",
         "Not built yet",
@@ -39,6 +40,10 @@ struct RootView: View {
                         matching(store.readingWithPermission))
 
                 permissionSection
+
+                section("You said no",
+                        note: "Declining is a real answer, and these stay listed rather than disappearing. Settings › Privacy & Security reverses any of them.",
+                        matching(store.denied))
 
                 section("Not available here",
                         note: RuntimeEnvironment.current == .simulator

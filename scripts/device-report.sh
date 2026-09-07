@@ -15,6 +15,11 @@ DEVICE="${GLASSHOUSE_DEVICE:-$(xcrun devicectl list devices 2>/dev/null | awk '/
 
 LOG="${GLASSHOUSE_LOG:-/tmp/glasshouse-device.log}"
 
+# Removed before every run. A stale log read as a fresh one is worse than no
+# log: it reports yesterday's state with today's confidence, which cost real
+# time once already.
+rm -f "$LOG"
+
 xcrun devicectl device process launch --device "$DEVICE" \
     --terminate-existing --console fit.glasshouse.app > "$LOG" 2>&1 &
 PID=$!
@@ -25,8 +30,10 @@ wait $PID 2>/dev/null || true
 if grep -q "GH|" "$LOG"; then
     grep "GH|" "$LOG" | sed 's/.*GH| //'
 else
-    echo "No report captured. Common causes:"
-    grep -iE "locked|not.*unlocked|trust" "$LOG" | head -2 || true
-    echo "  - phone locked (devicectl can install through a lock but not launch)"
-    echo "  - developer profile not trusted: Settings > General > VPN & Device Management"
+    echo "FAILED: no report captured. Common causes:" >&2
+    grep -iE "locked|not.*unlocked|trust" "$LOG" >&2 | head -2 || true
+    echo "  - phone locked (devicectl can install through a lock but not launch)" >&2
+    echo "  - developer profile not trusted: Settings > General > VPN & Device Management" >&2
+    # Non-zero so a caller that discards stdout still notices.
+    exit 1
 fi

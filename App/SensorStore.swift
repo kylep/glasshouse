@@ -134,6 +134,15 @@ final class SensorStore {
         snapshots.filter { $0.availability == .needsPermission }
     }
 
+    /// Sensors you said no to, or that a device policy blocks.
+    ///
+    /// These matched no section before, which meant a denied sensor simply
+    /// vanished from the app — the one outcome a tool about permissions must
+    /// not hide. Declining is a legitimate answer and deserves to be visible.
+    var denied: [SensorSnapshot] {
+        snapshots.filter { $0.availability == .denied || $0.availability == .restricted }
+    }
+
     var unavailableHere: [SensorSnapshot] {
         snapshots.filter {
             guard case .unavailable(let reason) = $0.availability else { return false }

@@ -18,7 +18,6 @@ import GlasshouseCore
 final class MicrophoneMeter {
     static let shared = MicrophoneMeter()
 
-    private let engine = AVAudioEngine()
     private init() {}
 
     /// Kill switch while the post-grant crash is diagnosed.
@@ -26,7 +25,7 @@ final class MicrophoneMeter {
     /// Granting the microphone made the app terminate on every launch, because
     /// availability then reports .ready and read() runs the meter on each
     /// refresh. One sensor must not take down an app built to show forty.
-    nonisolated static let meteringEnabled = false
+    nonisolated static let meteringEnabled = true
 
     var permission: AVAudioApplication.recordPermission {
         AVAudioApplication.shared.recordPermission
@@ -37,42 +36,60 @@ final class MicrophoneMeter {
     }
 
     /// Listens for a moment and returns peak and average amplitude, 0...1.
-    func measure(seconds: Double = 1.0) async -> (peak: Float, average: Float)? {
-        guard permission == .granted, Self.meteringEnabled else { return nil }
+    ///
+    /// Deliberately `nonisolated` on a detached task with its own engine, which
+    /// is the same shape the pedometer needed. Driving Core Motion from a
+    /// `@MainActor` context terminated the process there; audio capture is the
+    /// other framework in this app that owns real-time threads, and it crashed
+    /// the same way once the permission was granted and this path first ran.
+    ///
+    /// The engine is local and held alive for the duration, then torn down —
+    /// leaving it running would keep the microphone open and the orange
+    /// indicator lit indefinitely.
+    nonisolated func measure(seconds: Double = 1.0) async -> (peak: Float, average: Float)? {
+        guard await permission == .granted, Self.meteringEnabled else { return nil }
 
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.record, mode: .measurement, options: [])
-        try? session.setActive(true)
+        return await Task.detached(priority: .userInitiated) { () -> (peak: Float, average: Float)? in
+            let engine = AVAudioEngine()
+            defer { engine.stop() }
 
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0 else { return nil }
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.record, mode: .measurement, options: [])
+            try? session.setActive(true)
+            defer { try? session.setActive(false, options: .notifyOthersOnDeactivation) }
 
-        let samples = Meter()
-        input.installTap(onBus: 0, bufferSize: 2048, format: format) { buffer, _ in
-            guard let channel = buffer.floatChannelData?[0] else { return }
-            var peak: Float = 0
-            var sum: Float = 0
-            let count = Int(buffer.frameLength)
-            for i in 0..<count {
-                let magnitude = abs(channel[i])
-                peak = max(peak, magnitude)
-                sum += magnitude
+            let input = engine.inputNode
+            let format = input.outputFormat(forBus: 0)
+            guard format.sampleRate > 0 else { return nil }
+
+            let samples = Meter()
+            input.installTap(onBus: 0, bufferSize: 2048, format: format) { buffer, _ in
+                guard let channel = buffer.floatChannelData?[0] else { return }
+                var peak: Float = 0
+                var sum: Float = 0
+                let count = Int(buffer.frameLength)
+                for i in 0..<count {
+                    let magnitude = abs(channel[i])
+                    peak = max(peak, magnitude)
+                    sum += magnitude
+                }
+                samples.record(peak: peak, mean: count > 0 ? sum / Float(count) : 0)
             }
-            samples.record(peak: peak, mean: count > 0 ? sum / Float(count) : 0)
-        }
 
-        engine.prepare()
-        try? engine.start()
-        try? await Task.sleep(for: .seconds(seconds))
+            engine.prepare()
+            do {
+                try engine.start()
+            } catch {
+                // Reported as no reading rather than crashing. A microphone
+                // that will not start is a fact about the device, not a fault.
+                input.removeTap(onBus: 0)
+                return nil
+            }
 
-        // Stop before returning: leaving the engine running would keep the
-        // microphone open, and the status-bar indicator lit, indefinitely.
-        input.removeTap(onBus: 0)
-        engine.stop()
-        try? session.setActive(false, options: .notifyOthersOnDeactivation)
-
-        return samples.result
+            try? await Task.sleep(for: .seconds(seconds))
+            input.removeTap(onBus: 0)
+            return samples.result
+        }.value
     }
 
     /// Accumulates tap callbacks, which arrive on an audio thread.
