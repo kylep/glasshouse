@@ -16,7 +16,7 @@ Read `docs/architecture.md` before making structural changes, and
    `project.yml` and gitignored. Run `scripts/bootstrap.sh`.
 3. **No network stack in this phase.** No `URLSession`, no `Network`, no
    sockets. Phase 2 must add one deliberately.
-4. **No third-party dependencies.** Zero is the target.
+4. **Dependencies need a recorded reason** in `docs/DECISIONS.md` — what it does, what removing it would take, why writing it was worse. The bar is high; "a library exists" is not a reason. See D9.
 5. **Never commit captured personal data.** Real sensor traces, App Privacy
    Report exports, and GPX from an actual phone are personal data. Only
    synthetic or hand-authored fixtures go in git. This repo is public.

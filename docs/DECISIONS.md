@@ -204,3 +204,59 @@ tabs are coupled through it.
 **Reversal:** give `RecordingView` its own store again and pass replay state
 through a binding or an environment value instead. The banner logic already
 reads from a single `replaying` property, so it would move intact.
+
+## D9 — Dependencies need a recorded reason, not a ban
+
+**Decided:** the zero-third-party-dependency rule becomes "no dependency
+without a written justification in this file." Kyle's call, 2026-09-07.
+
+**Why the original rule existed:** an app holding health, location, contacts
+and photo coordinates has an unusually costly supply chain. With no
+dependencies, no transitive package can exfiltrate anything, because there is
+nothing to compromise. That is a stronger claim than most apps can make.
+
+**Why it changes:** absolute rules stop being reasoned about. The invariant had
+already forced one real trade — the ledger is Swift source rather than YAML,
+because Swift has no stdlib YAML parser (D1) — and it was about to force a
+worse one on the time-series store. A rule that survives on principle rather
+than on merit eventually costs more than it protects.
+
+**What stays:** the bar is high, and the burden is on the dependency. Small
+attack surface is still the goal; "a library exists" is not a reason. Anything
+added gets an entry here saying what it does, what it would take to remove, and
+why writing it was worse.
+
+**Confidence:** high. This is the same protection against drift with none of
+the absolutism.
+
+**Reversal:** re-tighten the `InvariantTests` check to fail on any external
+package. The test still enumerates them, so it would take one line.
+
+---
+
+## D10 — No-egress is a claim to the user, and will be broken deliberately
+
+**Decided:** no-egress stays enforced, but is expected to end — Kyle plans AI
+features that send data off-device, opt-in and default-off.
+
+**Why record this now:** because the difference between a claim that ends
+deliberately and one that erodes is entirely in whether it was planned. The
+app currently tells people "nothing here leaves the device" and a test makes
+that true. When that stops being true it must stop visibly: the copy changes,
+the affected sensors say where their data goes, and the invariant becomes a
+per-feature allowlist rather than disappearing.
+
+Unlike the dependency rule, this one is a promise made to someone else. It is
+the app's central claim, so breaking it quietly would be the exact failure the
+project exists to demonstrate.
+
+**What "opt-in, default-off" has to mean concretely**, decided before any code:
+the switch is per sensitivity class rather than global; the app states which
+provider receives the data and under whose terms; and `intimate` data —
+health, precise location history, reproductive records — is excluded by
+default even when the feature is on. See `docs/phase-2-boundary.md`.
+
+**Confidence:** high on the principle; the exclusion list is a judgement call
+worth revisiting when the feature is real.
+
+**Reversal:** not applicable — this records an intent, not a change.
