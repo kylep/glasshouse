@@ -9,6 +9,10 @@ struct DashboardView: View {
     let logging: LoggingCoordinator
     @Binding var selectedTab: Int
 
+    /// A day by default: long enough to hold a night of readings, short enough
+    /// that a sparkline still shows today's movement.
+    @State private var window: ChartWindow = .day
+
     var body: some View {
         NavigationStack {
             List {
@@ -19,26 +23,40 @@ struct DashboardView: View {
                         waitingState
                     }
                 } else {
+                    // First row rather than a pinned inset: `safeAreaInset` on
+                    // a List displaces the large title instead of sitting below
+                    // it, which left an empty band where "Dashboard" should be.
+                    Section {
+                        Picker("Range", selection: $window) {
+                            ForEach(ChartWindow.dashboardChoices) { Text($0.label).tag($0) }
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowInsets(.init(top: 0, leading: 16, bottom: 4, trailing: 16))
+
                     Section {
                         ForEach(logging.chartsWithData, id: \.sensor) { featured in
                             NavigationLink {
-                                ChartDetailView(logging: logging, featured: featured)
+                                ChartDetailView(
+                                    logging: logging,
+                                    featured: featured,
+                                    // Opening a chart keeps the range the row
+                                    // was drawn at. Resetting it would show a
+                                    // different shape than the one tapped.
+                                    initialWindow: window
+                                )
                             } label: {
                                 SparklineRow(
                                     featured: featured,
-                                    // Last 24h. Plotting all of history in an
-                                    // 88-point sparkline compresses recent
-                                    // movement into a flat line.
                                     points: logging.series(
                                         for: featured.sensor,
                                         field: featured.field,
-                                        since: Date().timeIntervalSince1970 - 86_400
+                                        since: window.start(from: Date().timeIntervalSince1970)
                                     )
                                 )
                             }
                         }
-                    } header: {
-                        Text("Last 24 hours")
                     } footer: {
                         Text("Tap a signal for its full chart and longer ranges.")
                     }

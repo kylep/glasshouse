@@ -14,7 +14,7 @@ struct SparklineRow: View {
     var body: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(CapabilityLedger[featured.sensor]?.displayName ?? featured.sensor.rawValue)
+                Text(DashboardNames.short(for: featured.sensor))
                     .font(.subheadline)
                     .lineLimit(1)
 
@@ -27,12 +27,12 @@ struct SparklineRow: View {
             Spacer(minLength: 8)
 
             trend
-                .frame(width: 88, height: 30)
+                .frame(width: 76, height: 30)
 
             Text(latest)
                 .font(.callout)
                 .monospacedDigit()
-                .frame(minWidth: 62, alignment: .trailing)
+                .frame(minWidth: 56, alignment: .trailing)
                 .lineLimit(1)
         }
         .padding(.vertical, 2)
@@ -46,12 +46,15 @@ struct SparklineRow: View {
         if featured.kind == .rose {
             let sectors = HeadingRose.bin(points.map(\.value))
             let busiest = sectors.max { $0.count < $1.count }
-            return "mostly \(busiest?.label ?? "—") · \(points.count) readings"
+            return "mostly \(busiest?.label ?? "—") · \(points.count)"
         }
 
         let values = points.map(\.value)
         guard let low = values.min(), let high = values.max() else { return "" }
-        return "\(short(low))–\(short(high)) · \(points.count) readings"
+        // A flat signal has no range worth printing, and saying "6.00–6.00"
+        // wastes the width that made the count truncate to "10 readin…".
+        if low == high { return "\(points.count) readings · steady" }
+        return "\(points.count) readings · \(short(low))–\(short(high))"
     }
 
     private var latest: String {

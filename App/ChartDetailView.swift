@@ -6,35 +6,19 @@ struct ChartDetailView: View {
     let logging: LoggingCoordinator
     let featured: ChartableSignals.Featured
 
-    @State private var window: Window = .all
+    @State private var window: ChartWindow
 
-    /// How far back to plot. Ranges rather than a scrubber, because at these
-    /// sample rates a scrubber would mostly be showing empty axis.
-    enum Window: String, CaseIterable, Identifiable {
-        case hour = "1h"
-        case day = "24h"
-        case week = "7d"
-        case all = "30d"
-
-        var id: String { rawValue }
-
-        var seconds: Double? {
-            switch self {
-            case .hour: 3600
-            case .day: 86_400
-            case .week: 604_800
-            // Capped rather than unbounded: beyond a month the axis
-            // compresses recent detail into nothing.
-            case .all: 2_592_000
-            }
-        }
+    init(logging: LoggingCoordinator, featured: ChartableSignals.Featured, initialWindow: ChartWindow = .month) {
+        self.logging = logging
+        self.featured = featured
+        _window = State(initialValue: initialWindow)
     }
 
     var body: some View {
         List {
             Section {
                 Picker("Range", selection: $window) {
-                    ForEach(Window.allCases) { Text($0.rawValue).tag($0) }
+                    ForEach(ChartWindow.allCases) { Text($0.label).tag($0) }
                 }
                 .pickerStyle(.segmented)
             }
@@ -65,7 +49,7 @@ struct ChartDetailView: View {
         logging.series(
             for: featured.sensor,
             field: featured.field,
-            since: window.seconds.map { Date().timeIntervalSince1970 - $0 }
+            since: window.start(from: Date().timeIntervalSince1970)
         )
     }
 
