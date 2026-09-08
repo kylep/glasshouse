@@ -38,9 +38,11 @@ final class LoggingCoordinator {
         savePolicies()
         reschedule()
 
-        // Switching a signal on should produce a first point immediately. An
-        // interval of an hour that shows nothing for an hour reads as broken.
-        if policy.isEnabled, policy.capture.isPolling {
+        // Switching a signal on takes a reading immediately, whatever the
+        // capture mode. This previously fired only for polling signals, so
+        // enabling one with the default (on demand) recorded nothing at all and
+        // gave no sign of it — the switch looked broken.
+        if policy.isEnabled {
             Task { await record(id) }
         }
     }
@@ -117,6 +119,20 @@ final class LoggingCoordinator {
 
     var hasAnyData: Bool {
         policies.enabled.contains { count(for: $0) > 0 }
+    }
+
+    /// Signals switched on that do not yet have enough points to draw.
+    ///
+    /// A chart needs two readings to have a shape. Without this the Dashboard
+    /// could not distinguish "you have not turned anything on" from "it is
+    /// recording, wait for the next reading" — and said the former in both
+    /// cases, which was wrong and looked like a bug.
+    var awaitingFirstPoints: [(featured: ChartableSignals.Featured, count: Int)] {
+        ChartableSignals.featured.compactMap { featured in
+            guard policies[featured.sensor].isEnabled else { return nil }
+            let stored = count(for: featured.sensor)
+            return stored > 1 ? nil : (featured, stored)
+        }
     }
 
     // MARK: - Scheduling

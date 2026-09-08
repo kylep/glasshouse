@@ -13,7 +13,11 @@ struct DashboardView: View {
         NavigationStack {
             List {
                 if logging.chartsWithData.isEmpty {
-                    emptyState
+                    if logging.awaitingFirstPoints.isEmpty {
+                        emptyState
+                    } else {
+                        waitingState
+                    }
                 } else {
                     ForEach(logging.chartsWithData, id: \.sensor) { featured in
                         Section {
@@ -26,6 +30,35 @@ struct DashboardView: View {
                 }
             }
             .navigationTitle("Dashboard")
+        }
+    }
+
+    /// Recording is on but there is not yet enough to draw.
+    ///
+    /// Distinguishing this from "nothing is switched on" matters: the app
+    /// previously reported the latter in both cases, which read as the toggle
+    /// having failed.
+    private var waitingState: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Recording. Waiting for a second reading.")
+                    .font(.headline)
+                Text("A chart needs two points before it has a shape.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+
+                ForEach(logging.awaitingFirstPoints, id: \.featured.sensor) { entry in
+                    HStack {
+                        Text(CapabilityLedger[entry.featured.sensor]?.displayName
+                             ?? entry.featured.sensor.rawValue)
+                        Spacer()
+                        Text(entry.count == 0 ? "no readings yet" : "1 reading")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.caption)
+                }
+            }
+            .padding(.vertical, 4)
         }
     }
 

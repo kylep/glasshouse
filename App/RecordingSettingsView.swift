@@ -118,16 +118,17 @@ struct SignalLoggingView: View {
                 }
             }
 
-            if !policy.capture.isPolling {
-                Button {
-                    Task {
-                        await logging.record(capability.id)
-                        justRecorded = true
-                    }
-                } label: {
-                    Label(justRecorded ? "Recorded" : "Record a reading now",
-                          systemImage: justRecorded ? "checkmark" : "plus.circle")
+            // Offered in every mode. Waiting fifteen minutes to find out
+            // whether a signal records anything is a poor way to learn that it
+            // does not.
+            Button {
+                Task {
+                    await logging.record(capability.id)
+                    justRecorded = true
                 }
+            } label: {
+                Label(justRecorded ? "Recorded" : "Record a reading now",
+                      systemImage: justRecorded ? "checkmark" : "plus.circle")
             }
         } header: {
             Text("How often")
@@ -175,6 +176,16 @@ struct SignalLoggingView: View {
     private var dataSection: some View {
         Section {
             LabeledContent("Readings stored", value: "\(logging.count(for: capability.id))")
+
+            if let featured = ChartableSignals.featured(for: capability.id) {
+                NavigationLink {
+                    ChartDetailView(logging: logging, featured: featured)
+                } label: {
+                    Label("View chart", systemImage: featured.kind == .rose
+                          ? "chart.pie" : "chart.xyaxis.line")
+                }
+                .disabled(logging.count(for: capability.id) < 2)
+            }
             LabeledContent("Sensitivity", value: capability.sensitivity.rawValue)
 
             Button(role: .destructive) {
