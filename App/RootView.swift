@@ -295,7 +295,7 @@ struct SensorRow: View {
                 }
             }
             if let first = snapshot.sample?.fields.first {
-                Text("\(first.label): \(first.value.plainDescription)")
+                Text("\(first.label): \(first.value.displayText)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

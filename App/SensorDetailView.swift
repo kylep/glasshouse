@@ -98,7 +98,7 @@ struct SensorDetailView: View {
                 Section("Reading") {
                     ForEach(sample.fields, id: \.label) { field in
                         LabeledContent(field.label) {
-                            Text(field.value.plainDescription)
+                            Text(field.value.displayText)
                                 .monospacedDigit()
                                 .foregroundStyle(field.value.isPrecise ? .orange : .primary)
                         }

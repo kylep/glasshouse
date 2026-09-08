@@ -109,12 +109,7 @@ struct SparklineRow: View {
         }
     }
 
-    private func short(_ value: Double) -> String {
-        let magnitude = abs(value)
-        if magnitude >= 1000 { return String(format: "%.0f", value) }
-        if magnitude >= 10 { return String(format: "%.1f", value) }
-        return String(format: "%.2f", value)
-    }
+    private func short(_ value: Double) -> String { FieldValue.rounded(value) }
 }
 
 /// A compass rose small enough to sit in a table row.

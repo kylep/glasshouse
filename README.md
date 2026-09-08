@@ -79,6 +79,19 @@ Two failures look alike and are not:
 - No `GH|` lines and no error — the app launched and exited. That is a crash,
   not a signing problem.
 
+## Screenshots
+
+Captured on a Simulator, deliberately. Real device captures would carry actual
+contact counts, calendar contents, and location — the "holy-shit-PII" this app
+is built to display — into a public repository. Everything below is Apple's
+synthetic fixture data, which is also why several rows read as unavailable: the
+Simulator has no barometer, no Bluetooth, and no baseband.
+
+| Dashboard | Signals | Chart | Recording |
+|---|---|---|---|
+| <img src="images/screenshots/v0.1.0/dashboard.png" width="200"> | <img src="images/screenshots/v0.1.0/signals.png" width="200"> | <img src="images/screenshots/v0.1.0/chart-detail.png" width="200"> | <img src="images/screenshots/v0.1.0/recording.png" width="200"> |
+| Recorded signals over 1h / 24h / 7d / 30d, each a tap from its full chart. | Grouped by what iOS asks. Twelve signals are readable without any prompt at all. | The axis spans the chosen range, so the gap where nothing was recorded stays visible. | Off by default, per signal, with your own interval and retention. |
+
 ## Why it exists
 
 Most people have a rough sense that apps can read their location or their

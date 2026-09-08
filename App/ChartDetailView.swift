@@ -54,7 +54,6 @@ struct ChartDetailView: View {
     }
 
     private func format(_ value: Double) -> String {
-        let rounded = (value * 100).rounded() / 100
-        return featured.unit.map { "\(rounded) \($0)" } ?? "\(rounded)"
+        FieldValue.join(FieldValue.rounded(value), featured.unit)
     }
 }

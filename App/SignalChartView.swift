@@ -50,8 +50,7 @@ struct SignalChartView: View {
     }
 
     private func format(_ value: Double) -> String {
-        let rounded = (value * 10).rounded() / 10
-        return featured.unit.map { "\(rounded) \($0)" } ?? "\(rounded)"
+        FieldValue.join(FieldValue.rounded(value), featured.unit)
     }
 
     private var lineChart: some View {
