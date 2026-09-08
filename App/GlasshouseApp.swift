@@ -6,22 +6,28 @@ struct GlasshouseApp: App {
     /// changes what This phone shows. Two independent stores would let the app
     /// display live readings on one screen while claiming to replay on another.
     @State private var store = SensorStore()
+    @State private var logging = LoggingCoordinator()
+
+    /// Signals until there is history worth showing. A Dashboard that opens
+    /// empty on first launch teaches nothing about what the app does.
+    @State private var selection = 1
 
     var body: some Scene {
         WindowGroup {
-            TabView {
-                Tab("Signals", systemImage: "waveform") {
+            TabView(selection: $selection) {
+                Tab("Dashboard", systemImage: "chart.xyaxis.line", value: 0) {
+                    DashboardView(logging: logging, selectedTab: $selection)
+                }
+                Tab("Signals", systemImage: "waveform", value: 1) {
                     RootView(store: store)
                 }
-                Tab("Report", systemImage: "doc.text.magnifyingglass") {
-                    AttributionView()
+                Tab("Settings", systemImage: "gearshape", value: 4) {
+                    SettingsView(logging: logging, store: store)
                 }
-                Tab("Record", systemImage: "record.circle") {
-                    RecordingView(store: store)
-                }
-                Tab("Settings", systemImage: "gearshape") {
-                    SettingsView()
-                }
+            }
+            .task {
+                // Land on the Dashboard when there is something to see there.
+                if logging.hasAnyData { selection = 0 }
             }
         }
     }

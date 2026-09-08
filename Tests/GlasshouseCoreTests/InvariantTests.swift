@@ -127,6 +127,8 @@ struct ProjectInvariantTests {
          "reads sensor recordings back from the app's own Documents directory"),
         ("Data(contentsOf:", "ReadingCacheFile.swift",
          "reads the previous launch's readings from Application Support"),
+        ("Data(contentsOf:", "LoggingCoordinator.swift",
+         "reads the saved logging policies from Application Support"),
     ]
 
     @Test("Nothing in the project can reach the network")

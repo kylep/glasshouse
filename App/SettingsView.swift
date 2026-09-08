@@ -9,11 +9,34 @@ import GlasshouseSensors
 /// pretending to be a settings screen with nothing in it. An empty page with a
 /// title is worse than a page that says what it will become.
 struct SettingsView: View {
+    let logging: LoggingCoordinator
+    let store: SensorStore
+
     private let environment = RuntimeEnvironment.current
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    NavigationLink {
+                        RecordingSettingsView(logging: logging, store: store)
+                    } label: {
+                        Label("Recording", systemImage: "record.circle")
+                    }
+                    NavigationLink {
+                        AttributionView()
+                    } label: {
+                        Label("Other apps", systemImage: "doc.text.magnifyingglass")
+                    }
+                    NavigationLink {
+                        RecordingView(store: store)
+                    } label: {
+                        Label("Snapshots", systemImage: "camera.aperture")
+                    }
+                } footer: {
+                    Text("Recording keeps a history of individual signals. Snapshots capture every sensor at once, for replaying later.")
+                }
+
                 Section("This build") {
                     LabeledContent("Version", value: Self.version)
                     LabeledContent("Running on", value: environment.rawValue)
@@ -34,19 +57,6 @@ struct SettingsView: View {
                     Text("Sensors")
                 } footer: {
                     Text("Every one records its exact permission key, entitlement, signing tier, measured Simulator behaviour, and a source with a verification date.")
-                }
-
-                Section {
-                    Text("""
-                        Nothing here yet. This is where collection controls will \
-                        live — which sensitivity classes are read by default, how \
-                        long readings are kept, and what a future export would be \
-                        allowed to include.
-                        """)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                } header: {
-                    Text("Not built yet")
                 }
 
                 Section {
