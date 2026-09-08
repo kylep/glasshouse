@@ -298,7 +298,7 @@ struct ChartableSignalsTests {
     @Test("Lookup finds featured signals and rejects others")
     func lookup() {
         #expect(ChartableSignals.isFeatured("device.battery"))
-        #expect(!ChartableSignals.isFeatured("contacts.all"))
+        #expect(!ChartableSignals.isFeatured("device.identifier_for_vendor"))
         #expect(ChartableSignals.featured(for: "device.battery")?.field == "Level")
     }
 }

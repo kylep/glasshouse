@@ -115,6 +115,40 @@ final class LoggingCoordinator {
         }
     }
 
+    /// How a manual collection is going, for the button to show.
+    enum CollectionState: Equatable {
+        case idle
+        case collecting
+        case finished(recorded: Int)
+    }
+
+    private(set) var collection: CollectionState = .idle
+
+    /// Takes a reading of every enabled signal, now, regardless of schedule.
+    ///
+    /// Sequential rather than parallel: several sensors take seconds to answer
+    /// and a few contend for the same hardware, so firing them all at once
+    /// makes the slow ones slower and the button lie about being finished.
+    func collectNow() async {
+        guard collection != .collecting else { return }
+        collection = .collecting
+
+        var recorded = 0
+        for id in policies.enabled {
+            let before = count(for: id)
+            await record(id)
+            if count(for: id) > before { recorded += 1 }
+        }
+
+        collection = .finished(recorded: recorded)
+        reschedule()
+
+        // Held long enough to read, then cleared. The button fades back rather
+        // than snapping, so a fast collection does not just flicker.
+        try? await Task.sleep(for: .seconds(2))
+        if case .finished = collection { collection = .idle }
+    }
+
     /// Reads everything currently due.
     func recordDue() async {
         let plan = LoggingPlan(policies: policies)

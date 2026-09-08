@@ -22,6 +22,7 @@ public enum ImplementedCapabilities {
         "device.low_power_mode",
         "device.storage",
         "device.uptime",
+        "nearby_interaction.ranging",
         "network.path",
         "pasteboard.contents",
         "pasteboard.shape",

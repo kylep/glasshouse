@@ -1,6 +1,7 @@
 #if os(iOS)
 import Foundation
 import CoreBluetooth
+import NearbyInteraction
 import GlasshouseCore
 
 /// A census of the Bluetooth devices around you.
@@ -209,6 +210,40 @@ public struct LiveBluetoothScanSource: SensorSource {
         fields.append(SensorField("Connectable", .integer(peers.filter(\.connectable).count)))
 
         return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: fields)
+    }
+}
+/// What this phone's ultra-wideband radio can do.
+///
+/// A ranging *session* needs a second consenting device, so distance and
+/// direction cannot be read alone. The hardware's own capabilities can, and
+/// they are the interesting part: whether the phone can measure another
+/// device's distance to the centimetre, and its direction in space.
+public struct LiveNearbyInteractionSource: SensorSource {
+    public let id: SensorID = "nearby_interaction.ranging"
+
+    public init() {}
+
+    public func availability() async -> SensorAvailability {
+        guard NISession.deviceCapabilities.supportsPreciseDistanceMeasurement else {
+            return .unavailable(reason: RuntimeEnvironment.current == .simulator
+                ? .simulator
+                : .hardwareAbsent)
+        }
+        return .ready
+    }
+
+    public func read() async -> SensorSample? {
+        let capabilities = NISession.deviceCapabilities
+        guard capabilities.supportsPreciseDistanceMeasurement else { return nil }
+
+        return SensorSample(sensor: id, timestamp: Date().timeIntervalSince1970, fields: [
+            SensorField("Distance to the centimetre", .boolean(capabilities.supportsPreciseDistanceMeasurement)),
+            SensorField("Direction in space", .boolean(capabilities.supportsDirectionMeasurement)),
+            SensorField("Camera-assisted", .boolean(capabilities.supportsCameraAssistance)),
+            SensorField("Extended range", .boolean(capabilities.supportsExtendedDistanceMeasurement)),
+            // Stated because it is the reason there is no measurement here.
+            SensorField("Needs a second device", .boolean(true)),
+        ])
     }
 }
 #endif

@@ -56,6 +56,7 @@ public enum GlasshouseSensors {
             LiveVisionTextSource(),
             LiveVisionFacesSource(),
             LiveBluetoothScanSource(),
+            LiveNearbyInteractionSource(),
             LiveContactsSource(),
             LiveMicrophoneSource(),
             LiveSpeechRecognitionSource(),

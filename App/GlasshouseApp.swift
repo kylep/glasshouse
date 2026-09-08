@@ -25,6 +25,11 @@ struct GlasshouseApp: App {
                     SettingsView(logging: logging, store: store)
                 }
             }
+            // Above the tab bar rather than inside it, so it is reachable from
+            // every screen without becoming a destination.
+            .safeAreaInset(edge: .bottom) {
+                CollectNowButton(logging: logging)
+            }
             .task {
                 // Land on the Dashboard when there is something to see there.
                 if logging.hasAnyData { selection = 0 }
