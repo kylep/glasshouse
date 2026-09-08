@@ -9,15 +9,75 @@ find useful.
 Nothing is logged until you switch it on, per signal. Retention is something
 you set rather than something that happens to you. Nothing leaves the device.
 
-> **Status: running on real hardware.** 59 capabilities catalogued, 20 live
-> adapters, and an App Privacy Report importer. On an iPhone 14 Pro it opens
-> with *"8 things about you are readable right now, without anything asking"*
-> over a list of exactly which.
->
-> Ten capabilities produce readings so far, with zero unexplained silences —
-> every quiet sensor gave a reason that matched what the ledger predicted. Ten
-> more are waiting on a permission prompt. See
-> [the first device run](docs/reports/2026-08-31-first-device-run.md).
+> **Status: running on real hardware.** 60 capabilities catalogued, 47 with a
+> working adapter. On an iPhone 14 Pro the most recent device run read **38 of
+> them**, of which **20 needed no permission and asked for nothing**, with zero
+> unexplained silences — every quiet sensor gave a reason the ledger predicted.
+> See [the first device run](docs/reports/2026-08-31-first-device-run.md).
+
+# Sideload Install Process
+
+Glasshouse is not on the App Store. You build it and install it on your own
+phone, which takes a Mac with Xcode and a free Apple ID — no paid developer
+account.
+
+```bash
+scripts/device.sh
+```
+
+That generates the Xcode project, reads your Team ID out of your signing
+certificate, builds, installs to the connected iPhone, and prints the capability
+report. Plug the phone in over USB and unlock it first.
+
+**Then trust the certificate on the phone.** A newly signed app will not launch
+until you do, and the error iOS shows says only that the app is "no longer
+available":
+
+> Settings → General → VPN & Device Management → under Developer App tap
+> Apple Development: kyle@pericak.com → Trust.
+
+Substitute your own Apple ID where that says `kyle@pericak.com`.
+
+## It stops working after seven days
+
+Free Apple IDs get provisioning profiles that last exactly **7 days**. When one
+expires the app refuses to launch and the phone says it is "no longer
+available" — nothing is wrong with the build.
+
+Rebuilding is not always enough: Xcode reuses a cached profile, and a build that
+succeeds today can be signed with a profile expiring in an hour. To force a new
+one, delete the cached profile and rebuild:
+
+```bash
+rm ~/Library/Developer/Xcode/UserData/Provisioning\ Profiles/*.mobileprovision
+scripts/device.sh
+```
+
+To check what you have before it bites, read the dates out of the built app:
+
+```bash
+security cms -D -i .build/xcode/Build/Products/Debug-iphoneos/Glasshouse.app/embedded.mobileprovision | plutil -extract ExpirationDate raw -
+```
+
+Re-trusting is usually needed after a renewal, because the new profile carries a
+new certificate.
+
+The only permanent fix is the [Apple Developer Program](https://developer.apple.com/programs/enroll/)
+— 99 USD a year, which raises profile lifetime from 7 days to a year. Enrol on
+the web or in the Apple Developer app; it needs identity verification against
+your legal name, so it is not instant. `scripts/device.sh` reads the Team ID out
+of whichever signing certificate you have, so nothing here changes when you
+switch — rebuild and it picks the new one up.
+
+## If it still will not launch
+
+`scripts/device.sh` writes the full launch log to `/tmp/glasshouse-device.log`.
+Two failures look alike and are not:
+
+- *"invalid code signature, inadequate entitlements or its profile has not been
+  explicitly trusted"* — the trust step above, or an expired profile.
+- No `GH|` lines and no error — the app launched and exited. That is a crash,
+  not a signing problem.
 
 ## Why it exists
 
