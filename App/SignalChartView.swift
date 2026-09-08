@@ -74,9 +74,11 @@ struct SignalChartView: View {
         }
         .chartXScale(domain: xDomain)
         .chartYAxisLabel(featured.unit ?? "")
-        // Not zero-based: for pressure or altitude a fixed zero flattens the
-        // signal into a straight line, and the variation is the whole point.
-        .chartYScale(domain: .automatic(includesZero: false))
+        // Explicit, not `.automatic(includesZero: false)`: automatic inverts
+        // the axis for a flat series, and it is never zero-based because for
+        // pressure or altitude a fixed zero flattens the signal into a straight
+        // line when the variation is the whole point.
+        .chartYScale(domain: ChartDomain.y(for: points.map(\.value)))
         .frame(height: 160)
     }
 

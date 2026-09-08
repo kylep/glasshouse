@@ -44,6 +44,41 @@ struct CapabilitySearchTests {
         #expect(ids("fingerprint").contains("device.uptime"))
     }
 
+    @Test("The search box's own placeholder suggestion works")
+    func placeholderSuggestion() {
+        // The prompt reads: Search — try "who is near me". Typing exactly that
+        // returned "No Results", because every word had to appear and no
+        // capability's text contains "who" or "me". Suggesting a query the app
+        // cannot answer is worse than suggesting none.
+        //
+        // The existing coverage missed it by testing "nearby" — a phrasing that
+        // already worked — rather than the string the UI actually offers.
+        #expect(ids("who is near me").contains("bluetooth.scan"))
+    }
+
+    @Test("Question phrasing does not break a real query")
+    func questionPhrasing() {
+        // "where" is deliberately not filtered: capabilities describe
+        // themselves as "Where each photo was taken", so dropping it would
+        // break this while fixing the case above.
+        #expect(ids("where have I been").contains("photos.asset_location"))
+        #expect(ids("what am I listening through").contains("av.audio_route"))
+
+        // Known limit, asserted so it is a decision rather than a surprise:
+        // matching is literal, so a synonym the ledger does not use finds
+        // nothing. "hear" appears in no capability's text, and the microphone
+        // describes itself as "Live audio, and the ambient sound level".
+        // Fixing that needs a synonym map, which is a bigger change than
+        // making the placeholder honest.
+        #expect(ids("what can hear me").isEmpty)
+    }
+
+    @Test("A query of only grammar does not return the whole ledger")
+    func onlyGrammar() {
+        // Filtering must not empty the query and silently mean "match all".
+        #expect(ids("is it").count < CapabilityLedger.all.count)
+    }
+
     @Test("Finds the ungated set by its consent label")
     func byConsentState() {
         // "never asks" is the phrase a person would search for, and it appears
