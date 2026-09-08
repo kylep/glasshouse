@@ -79,6 +79,34 @@ public enum ChartableSignals {
             reading: "Free space. Drifts down as photos and apps accumulate, and jumps when something is deleted."
         ),
         Featured(
+            sensor: "health.vitals", field: "Latest heart rate", unit: "bpm",
+            reading: "Heart rate over time. Sleep, exertion and stress are all visible in the shape, which is what makes it the most personal series here."
+        ),
+        Featured(
+            sensor: "core_location.position", field: "Speed", unit: "m/s",
+            reading: "How fast you were moving. Walking sits near 1.4 m/s, cycling around 5, driving well above — so the plateaus say how you travelled."
+        ),
+        Featured(
+            sensor: "av.camera", field: "Brightness", unit: "%",
+            reading: "How bright the camera's view is. A stand-in for the ambient light sensor, which no third-party app is allowed to read — this is the same information reached the long way round."
+        ),
+        Featured(
+            sensor: "device.screen_capture", field: "Brightness", unit: "%",
+            reading: "Screen brightness. Tracks daylight if auto-brightness is on, and shows when the phone was being used in the dark."
+        ),
+        Featured(
+            sensor: "core_motion.magnetometer", field: "Strength", unit: "µT",
+            reading: "Total magnetic field strength. Earth's is about 50 µT; steel structures and electronics distort it, so indoors reads differently from outside."
+        ),
+        Featured(
+            sensor: "core_motion.device_motion", field: "Your movement", unit: "g",
+            reading: "Acceleration you caused, with gravity removed. Flat while the phone is still, spiky while it is carried."
+        ),
+        Featured(
+            sensor: "photos.library", field: "Photos", unit: nil,
+            reading: "How many photos are in the library. A slow ramp that steps up after events worth photographing."
+        ),
+        Featured(
             sensor: "device.uptime", field: "Uptime", unit: "hours",
             reading: "Time since the last restart. A sawtooth — each drop to zero is a reboot."
         ),
