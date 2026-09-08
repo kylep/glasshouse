@@ -215,12 +215,32 @@ struct ProjectInvariantTests {
         for directory in ["Sources", "App"] {
             for file in Self.swiftFiles(under: directory) {
                 let contents = Self.codeOnly(try String(contentsOf: file, encoding: .utf8))
-                for token in forbidden where contents.contains(token) {
+                // Matched as code, not as prose. "Adjust" is both an analytics
+                // SDK and an ordinary English verb, and a bare substring search
+                // flagged the sentence "Adjust any of them below" in a footer —
+                // a false positive that would eventually train someone to
+                // ignore this test, which is worse than not having it.
+                for token in forbidden
+                where contents.contains("import \(token)")
+                    || contents.contains("\(token).")
+                    || contents.contains("\(token)(") {
                     violations.append("\(file.lastPathComponent): \(token)")
                 }
             }
         }
         #expect(violations.isEmpty, "\(violations.joined(separator: ", "))")
+    }
+
+    @Test("An analytics SDK is caught, but the same word in prose is not")
+    func telemetryCheckIgnoresProse() {
+        // Both halves matter. Missing a real import defeats the invariant;
+        // flagging ordinary English makes it noise people learn to skip.
+        let real = ProjectInvariantTests.codeOnly("import Adjust\nlet x = 1")
+        #expect(real.contains("import Adjust"))
+
+        let prose = ProjectInvariantTests.codeOnly("Text(\"Adjust any of them below\")")
+        #expect(!prose.contains("import Adjust"))
+        #expect(!prose.contains("Adjust("))
     }
 
     @Test("GlasshouseCore imports no Apple sensor framework")
