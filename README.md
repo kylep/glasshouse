@@ -81,7 +81,7 @@ Two failures look alike and are not:
 
 ## Screenshots
 
-Captured on a Simulator, deliberately. Real device captures would carry actual
+Dark mode, on a Simulator, deliberately. Real device captures would carry actual
 contact counts, calendar contents, and location — the "holy-shit-PII" this app
 is built to display — into a public repository. Everything below is Apple's
 synthetic fixture data, which is also why several rows read as unavailable: the
