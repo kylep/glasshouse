@@ -19,29 +19,28 @@ struct DashboardView: View {
                         waitingState
                     }
                 } else {
-                    ForEach(logging.chartsWithData, id: \.sensor) { featured in
-                        Section {
-                            // The card is a summary; the range controls live on
-                            // the detail screen. Putting pickers on every card
-                            // would have controls competing with content in a
-                            // scrolling list.
+                    Section {
+                        ForEach(logging.chartsWithData, id: \.sensor) { featured in
                             NavigationLink {
                                 ChartDetailView(logging: logging, featured: featured)
                             } label: {
-                                SignalChartView(
+                                SparklineRow(
                                     featured: featured,
+                                    // Last 24h. Plotting all of history in an
+                                    // 88-point sparkline compresses recent
+                                    // movement into a flat line.
                                     points: logging.series(
                                         for: featured.sensor,
                                         field: featured.field,
-                                        // Last 24h on the card. Plotting all of
-                                        // history in a thumbnail compresses
-                                        // recent movement into a flat line.
                                         since: Date().timeIntervalSince1970 - 86_400
                                     )
                                 )
                             }
-                            .buttonStyle(.plain)
                         }
+                    } header: {
+                        Text("Last 24 hours")
+                    } footer: {
+                        Text("Tap a signal for its full chart and longer ranges.")
                     }
                 }
             }
