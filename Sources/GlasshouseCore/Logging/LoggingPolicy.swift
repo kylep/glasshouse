@@ -106,6 +106,24 @@ public enum Retention: Sendable, Hashable, Codable {
     }
 }
 
+/// The settings a signal gets when switched on in bulk.
+///
+/// Five minutes and a week are chosen to be defensible without being asked
+/// about: frequent enough that a chart has shape within an hour, short enough
+/// that a forgotten signal is not still accumulating months later.
+public enum LoggingDefaults {
+    public static let interval = 300
+    public static let retention = Retention.days(7)
+
+    public static func policy(polling: Bool = true) -> LoggingPolicy {
+        LoggingPolicy(
+            isEnabled: true,
+            capture: polling ? .interval(seconds: interval) : .onDemand,
+            retention: retention
+        )
+    }
+}
+
 /// Every signal's policy, with the defaults applied.
 public struct LoggingPolicies: Sendable, Hashable, Codable {
     private var stored: [String: LoggingPolicy]
@@ -136,4 +154,27 @@ public struct LoggingPolicies: Sendable, Hashable, Codable {
 
     /// Whether anything at all has been switched on.
     public var isAnythingEnabled: Bool { stored.values.contains { $0.isEnabled } }
+
+    /// Switches a set of signals on with the shared defaults.
+    ///
+    /// Existing settings are left alone: someone who set the barometer to every
+    /// 30 seconds and then taps "record the charted signals" should not have
+    /// that quietly reset to five minutes.
+    public mutating func enable(_ ids: [SensorID]) {
+        for id in ids where !self[id].isEnabled {
+            self[id] = LoggingDefaults.policy()
+        }
+    }
+
+    /// Switches everything off, keeping each signal's other settings.
+    ///
+    /// Deliberately preserves interval and retention rather than clearing them,
+    /// so switching back on restores what was configured before.
+    public mutating func disableAll() {
+        for id in enabled {
+            var policy = self[id]
+            policy.isEnabled = false
+            self[id] = policy
+        }
+    }
 }

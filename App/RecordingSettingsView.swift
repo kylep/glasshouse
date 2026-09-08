@@ -10,23 +10,72 @@ struct RecordingSettingsView: View {
     let logging: LoggingCoordinator
     let store: SensorStore
 
+    @State private var applied: Int?
+    @State private var stopped: Int?
+
+    /// Charted signals that can actually produce a reading right now.
+    private var chartable: [SensorID] {
+        let readableIDs = Set(readable.map(\.capability.id))
+        return ChartableSignals.featured.map(\.sensor).filter(readableIDs.contains)
+    }
+
     var body: some View {
         List {
             Section {
                 Text("""
-                    Nothing is recorded until you switch it on here. Readings \
-                    stay on this device, and you choose how long they are kept.
+                    Nothing is recorded until you switch it on. Readings stay on \
+                    this device, and you choose how long they are kept.
                     """)
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
-            ForEach(readable, id: \.capability.id) { snapshot in
-                NavigationLink {
-                    SignalLoggingView(logging: logging, capability: snapshot.capability)
+            Section {
+                Button {
+                    applied = logging.enable(chartable)
                 } label: {
+                    Label("Record the \(chartable.count) charted signals", systemImage: "chart.xyaxis.line")
+                }
+                .disabled(chartable.isEmpty)
+
+                Button {
+                    applied = logging.enable(logging.recordable(from: readable))
+                } label: {
+                    Label("Record everything readable (\(readable.count))", systemImage: "waveform")
+                }
+
+                if logging.policies.isAnythingEnabled {
+                    Button(role: .destructive) {
+                        stopped = logging.disableAll()
+                        applied = nil
+                    } label: {
+                        Label("Stop recording everything", systemImage: "stop.circle")
+                    }
+                }
+            } header: {
+                Text("Quick start")
+            } footer: {
+                if let applied {
+                    Text(applied == 0
+                         ? "Those were already recording."
+                         : "^[\(applied) signal](inflect: true) switched on, every 5 minutes, kept for a week. Adjust any of them below.")
+                } else if let stopped {
+                    // Says what was kept, because "stop everything" sounds like
+                    // it might have thrown the readings away.
+                    Text("^[\(stopped) signal](inflect: true) stopped. Settings and recorded history are kept.")
+                } else {
+                    Text("Each starts at every 5 minutes, kept for a week. Already-configured signals keep their own settings.")
+                }
+            }
+
+            Section {
+                ForEach(readable, id: \.capability.id) { snapshot in
                     row(for: snapshot)
                 }
+            } header: {
+                Text("Signals")
+            } footer: {
+                Text("Tap a name to set how often it records and how long it is kept.")
             }
         }
         .navigationTitle("Recording")
@@ -40,24 +89,49 @@ struct RecordingSettingsView: View {
             .sorted { $0.capability.displayName < $1.capability.displayName }
     }
 
+    /// A switch that works in place, and a name that opens the detail.
+    ///
+    /// The navigation round trip per signal — tap in, toggle, come back — was
+    /// the actual tedium. Tapping through is now only needed to change interval
+    /// or retention.
     private func row(for snapshot: SensorSnapshot) -> some View {
-        let policy = logging.policy(for: snapshot.capability.id)
-        let stored = logging.count(for: snapshot.capability.id)
+        let capability = snapshot.capability
+        let policy = logging.policy(for: capability.id)
+        let stored = logging.count(for: capability.id)
 
-        return HStack {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(snapshot.capability.displayName)
-                Text(policy.isEnabled ? describe(policy) : "Off")
+        return HStack(spacing: 12) {
+            NavigationLink {
+                SignalLoggingView(logging: logging, capability: capability)
+            } label: {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(capability.displayName)
+                    HStack(spacing: 6) {
+                        Text(policy.isEnabled ? describe(policy) : "Off")
+                            .foregroundStyle(policy.isEnabled ? Color.accentColor : .secondary)
+                        if stored > 0 {
+                            Text("· \(stored) stored").foregroundStyle(.secondary)
+                        }
+                    }
                     .font(.caption2)
-                    .foregroundStyle(policy.isEnabled ? Color.accentColor : .secondary)
+                }
             }
-            Spacer()
-            if stored > 0 {
-                Text("\(stored)")
-                    .font(.caption2)
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
+
+            Toggle("", isOn: Binding(
+                get: { logging.policy(for: capability.id).isEnabled },
+                set: { isOn in
+                    var updated = logging.policy(for: capability.id)
+                    updated.isEnabled = isOn
+                    // A signal switched on inline has never been configured, so
+                    // it gets the same defaults the presets use rather than
+                    // silently landing on "on demand" and recording once.
+                    if isOn, !updated.capture.isPolling, stored == 0 {
+                        updated.capture = .interval(seconds: LoggingDefaults.interval)
+                        updated.retention = LoggingDefaults.retention
+                    }
+                    logging.update(updated, for: capability.id)
+                }
+            ))
+            .labelsHidden()
         }
     }
 

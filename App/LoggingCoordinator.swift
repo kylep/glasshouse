@@ -47,6 +47,38 @@ final class LoggingCoordinator {
         }
     }
 
+    /// Switches on a set of signals at once, and takes a first reading of each.
+    ///
+    /// Returns how many changed, so the UI can say what it did rather than
+    /// leaving someone to count rows.
+    @discardableResult
+    func enable(_ ids: [SensorID]) -> Int {
+        let before = policies.enabled.count
+        policies.enable(ids)
+        savePolicies()
+        reschedule()
+
+        for id in policies.enabled where !ids.isEmpty {
+            if ids.contains(id) { Task { await record(id) } }
+        }
+        return policies.enabled.count - before
+    }
+
+    /// Stops recording everything, keeping each signal's settings.
+    @discardableResult
+    func disableAll() -> Int {
+        let stopped = policies.enabled.count
+        policies.disableAll()
+        savePolicies()
+        stopTimer()
+        return stopped
+    }
+
+    /// Signals that can be recorded right now — readable, and not already on.
+    func recordable(from snapshots: [SensorSnapshot]) -> [SensorID] {
+        snapshots.filter { $0.availability.canRead }.map(\.capability.id)
+    }
+
     /// Deletes everything recorded for a signal, and says how much went.
     @discardableResult
     func deleteHistory(for id: SensorID) -> Int {

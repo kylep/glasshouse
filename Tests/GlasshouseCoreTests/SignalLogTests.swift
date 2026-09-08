@@ -355,3 +355,52 @@ struct HeadingRoseTests {
         #expect(abs(busiest[0].centre - busiest[1].centre) == 180)
     }
 }
+
+@Suite("Bulk enabling")
+struct BulkEnableTests {
+    @Test("Enabling a set switches them on with the shared defaults")
+    func enablesWithDefaults() {
+        var policies = LoggingPolicies()
+        policies.enable(["device.battery", "device.thermal"])
+
+        #expect(policies.enabled == ["device.battery", "device.thermal"])
+        #expect(policies["device.battery"].capture.seconds == LoggingDefaults.interval)
+        #expect(policies["device.battery"].retention == LoggingDefaults.retention)
+    }
+
+    @Test("Enabling in bulk does not overwrite a signal already configured")
+    func doesNotClobberExistingSettings() {
+        // Someone who set the barometer to every 30 seconds and then taps
+        // "record the charted signals" should keep their 30 seconds.
+        var policies = LoggingPolicies()
+        policies["core_motion.altimeter_relative"] = LoggingPolicy(
+            isEnabled: true, capture: .interval(seconds: 30), retention: .days(30)
+        )
+        policies.enable(["core_motion.altimeter_relative", "device.battery"])
+
+        #expect(policies["core_motion.altimeter_relative"].capture.seconds == 30)
+        #expect(policies["core_motion.altimeter_relative"].retention == .days(30))
+        #expect(policies["device.battery"].capture.seconds == LoggingDefaults.interval)
+    }
+
+    @Test("Disabling everything keeps each signal's other settings")
+    func disableAllPreservesConfiguration() {
+        // Switching back on should restore what was configured, not reset it.
+        var policies = LoggingPolicies()
+        policies["device.battery"] = LoggingPolicy(
+            isEnabled: true, capture: .interval(seconds: 30), retention: .days(30)
+        )
+        policies.disableAll()
+
+        #expect(!policies.isAnythingEnabled)
+        #expect(policies["device.battery"].capture.seconds == 30)
+        #expect(policies["device.battery"].retention == .days(30))
+    }
+
+    @Test("Disabling everything on an untouched set is harmless")
+    func disableAllOnNothing() {
+        var policies = LoggingPolicies()
+        policies.disableAll()
+        #expect(!policies.isAnythingEnabled)
+    }
+}
