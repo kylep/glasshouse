@@ -1,12 +1,13 @@
 # Glasshouse
 
-An iPhone app that reads every sensor it can reach and shows you the
-readings — so "your phone knows everything about you" stops being an abstract
-claim and becomes a list of numbers you can scroll.
+An iPhone app that reads every sensor it can reach and shows you the readings.
 
-It is deliberately invasive, and deliberately honest about it. Nothing is
-collected without a visible affordance, and in this phase nothing leaves the
-device at all.
+Your phone is already collecting most of this. The app makes that legible, and
+then — since the data exists anyway — lets you keep and chart the parts you
+find useful.
+
+Nothing is logged until you switch it on, per signal. Retention is something
+you set rather than something that happens to you. Nothing leaves the device.
 
 > **Status: running on real hardware.** 59 capabilities catalogued, 20 live
 > adapters, and an App Privacy Report importer. On an iPhone 14 Pro it opens

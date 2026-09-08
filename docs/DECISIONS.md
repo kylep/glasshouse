@@ -260,3 +260,38 @@ default even when the feature is on. See `docs/phase-2-boundary.md`.
 worth revisiting when the feature is real.
 
 **Reversal:** not applicable — this records an intent, not a change.
+
+## D11 — Phase 2 reframes the app from exposé to tool
+
+**Decided:** Kyle's direction, 2026-09-07. The app moves from "look how much
+your phone can spy on you" to "your phone is already reading this — you may as
+well get the value too", with visualisations and AI integration. Security
+first, because this is unusually sensitive personal data.
+
+**Why it matters beyond tone:** it changes what the app is for, and therefore
+what good looks like. An exposé is finished when the reader is alarmed. A tool
+is finished when someone uses it more than once. Those pull in opposite
+directions on almost every decision — an exposé wants the most shocking reading
+on screen, a tool wants the most useful one.
+
+It also retroactively explains why the copy felt wrong before it was rewritten.
+Sentences like "a camera roll is a location history most people forget they are
+carrying" were written to land a point. A tool describes what a field contains
+and lets the person decide what to do about it.
+
+**What follows from it:**
+
+- Logging is off by default and always will be. A tool that starts collecting
+  before being asked is the thing this project set out to criticise, whichever
+  framing it uses.
+- Retention is a first-class setting, not a cleanup detail. Data kept longer
+  than it is useful is liability rather than feature.
+- Sensitivity classes get separate database files, so a future export or model
+  integration can be handed a connection that cannot see intimate readings.
+- The security posture tightens rather than relaxes as features are added. See
+  D10 for the planned, deliberate end of the no-egress guarantee.
+
+**Confidence:** high — this is Kyle's product direction, recorded rather than
+decided by me.
+
+**Reversal:** not applicable.
