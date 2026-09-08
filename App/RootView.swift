@@ -3,6 +3,7 @@ import GlasshouseCore
 
 struct RootView: View {
     let store: SensorStore
+    let logging: LoggingCoordinator
 
     @State private var query = ""
 
@@ -179,7 +180,7 @@ struct RootView: View {
                 if isExpanded("Permission required — pending") {
                     ForEach(matching(store.awaitingPermission), id: \.capability.id) { snapshot in
                         NavigationLink {
-                            SensorDetailView(sensorID: snapshot.capability.id, store: store)
+                            SensorDetailView(sensorID: snapshot.capability.id, store: store, logging: logging)
                         } label: {
                             SensorRow(snapshot: snapshot)
                         }
@@ -229,7 +230,7 @@ struct RootView: View {
                 if isExpanded(title) {
                     ForEach(snapshots, id: \.capability.id) { snapshot in
                         NavigationLink {
-                            SensorDetailView(sensorID: snapshot.capability.id, store: store)
+                            SensorDetailView(sensorID: snapshot.capability.id, store: store, logging: logging)
                         } label: {
                             SensorRow(snapshot: snapshot)
                         }
@@ -309,5 +310,5 @@ struct SensorRow: View {
 }
 
 #Preview {
-    RootView(store: SensorStore())
+    RootView(store: SensorStore(), logging: LoggingCoordinator())
 }

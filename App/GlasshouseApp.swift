@@ -19,7 +19,7 @@ struct GlasshouseApp: App {
                     DashboardView(logging: logging, selectedTab: $selection)
                 }
                 Tab("Signals", systemImage: "waveform", value: 1) {
-                    RootView(store: store)
+                    RootView(store: store, logging: logging)
                 }
                 Tab("Settings", systemImage: "gearshape", value: 4) {
                     SettingsView(logging: logging, store: store)

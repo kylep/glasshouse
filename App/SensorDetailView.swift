@@ -11,6 +11,7 @@ struct SensorDetailView: View {
     /// say so", and it has to actually be able to.
     let sensorID: SensorID
     let store: SensorStore
+    let logging: LoggingCoordinator
 
     @State private var isRequesting = false
 
@@ -30,7 +31,60 @@ struct SensorDetailView: View {
         }
     }
 
+    /// Recording, on the signal's own page.
+    ///
+    /// Previously this lived only under Settings › Recording, so a signal had
+    /// two pages in two places — one describing it, one controlling it. Both
+    /// routes now reach the same screen, which is what a reader expects after
+    /// tapping a signal to find out about it.
     @ViewBuilder
+    private func recordingSection(capability: Capability, canRead: Bool) -> some View {
+        let policy = logging.policy(for: capability.id)
+        let stored = logging.count(for: capability.id)
+
+        Section {
+            if canRead {
+                NavigationLink {
+                    SignalLoggingView(logging: logging, capability: capability)
+                } label: {
+                    HStack {
+                        Label(policy.isEnabled ? "Recording" : "Not recording",
+                              systemImage: policy.isEnabled ? "record.circle.fill" : "record.circle")
+                            .foregroundStyle(policy.isEnabled ? Color.accentColor : .primary)
+                        Spacer()
+                        if stored > 0 {
+                            Text("\(stored)")
+                                .font(.caption)
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
+                if let featured = ChartableSignals.featured(for: capability.id), stored > 1 {
+                    NavigationLink {
+                        ChartDetailView(logging: logging, featured: featured)
+                    } label: {
+                        Label("View chart", systemImage: featured.kind == .rose
+                              ? "chart.pie" : "chart.xyaxis.line")
+                    }
+                }
+            } else {
+                // Offering to record something that cannot produce a reading
+                // would be an empty promise.
+                Text("This signal can't be recorded until it produces readings.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("History")
+        } footer: {
+            if canRead, !policy.isEnabled {
+                Text("Nothing is stored for this signal yet.")
+            }
+        }
+    }
+
     private func content(snapshot: SensorSnapshot, capability: Capability) -> some View {
         List {
             Section {
@@ -98,6 +152,8 @@ struct SensorDetailView: View {
             } header: {
                 Text("Does it ask?")
             }
+
+            recordingSection(capability: capability, canRead: snapshot.availability.canRead)
 
             Section("How it works") {
                 LabeledContent("Framework", value: capability.framework)
