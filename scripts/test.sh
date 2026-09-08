@@ -9,4 +9,8 @@
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
+# Charted field names cannot be checked by a unit test — the labels live in
+# the iOS-only sensor target, which never compiles on macOS.
+"$(dirname "$0")/check-chart-fields.py"
+
 exec swift test "$@"
