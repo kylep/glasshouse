@@ -14,7 +14,7 @@ struct ChartDetailView: View {
         case hour = "1h"
         case day = "24h"
         case week = "7d"
-        case all = "All"
+        case all = "30d"
 
         var id: String { rawValue }
 
@@ -23,7 +23,9 @@ struct ChartDetailView: View {
             case .hour: 3600
             case .day: 86_400
             case .week: 604_800
-            case .all: nil
+            // Capped rather than unbounded: beyond a month the axis
+            // compresses recent detail into nothing.
+            case .all: 2_592_000
             }
         }
     }
@@ -43,7 +45,7 @@ struct ChartDetailView: View {
                         .font(.callout)
                         .foregroundStyle(.secondary)
                 } else {
-                    SignalChartView(featured: featured, points: points)
+                    SignalChartView(featured: featured, points: points, spanning: window.seconds)
                 }
             }
 

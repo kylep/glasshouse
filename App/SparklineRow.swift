@@ -75,10 +75,19 @@ struct SparklineRow: View {
         } else if featured.kind == .rose {
             MiniRose(sectors: HeadingRose.bin(points.map(\.value), sectors: 8))
         } else {
+            // Readings are spaced evenly by position, NOT by timestamp.
+            //
+            // Real sampling is bursty — a handful of taps close together, then
+            // hours of nothing. On a time axis at this size that collapses into
+            // two vertical smears joined by a flat line, which looks broken and
+            // shows no trend at all. Even spacing makes the glyph mean "your
+            // last few readings, in order", which is what a sparkline is for.
+            // The honest time axis lives in the detail chart, where there is
+            // room to label it.
             Chart {
-                ForEach(Array(points.enumerated()), id: \.offset) { _, point in
+                ForEach(Array(points.enumerated()), id: \.offset) { index, point in
                     LineMark(
-                        x: .value("t", point.at),
+                        x: .value("reading", index),
                         y: .value("v", point.value)
                     )
                     .interpolationMethod(.monotone)

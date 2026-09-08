@@ -25,11 +25,14 @@ struct GlasshouseApp: App {
                     SettingsView(logging: logging, store: store)
                 }
             }
-            // Above the tab bar rather than inside it, so it is reachable from
-            // every screen without becoming a destination.
-            .safeAreaInset(edge: .bottom) {
-                CollectNowButton(logging: logging)
-            }
+            // `safeAreaInset` on a TabView draws into the tab bar's own space
+            // rather than above it, so the button's label ran straight through
+            // the Dashboard and Settings icons. iOS 26 has an API built for
+            // exactly this — the slot the Music mini-player sits in — which
+            // reserves its own row. The inset is kept only for iOS 18, where
+            // that API does not exist and the tab bar is a plain opaque strip
+            // it does not collide with.
+            .modifier(CollectNowPlacement(logging: logging))
             .task {
                 // Land on the Dashboard when there is something to see there.
                 if logging.hasAnyData { selection = 0 }

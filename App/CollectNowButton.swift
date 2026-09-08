@@ -6,6 +6,10 @@ import GlasshouseCore
 /// Sits above the tab bar rather than in it: SwiftUI tabs cannot act as
 /// buttons, and tab items cannot be individually tinted, so the colour states
 /// would be impossible there.
+///
+/// Carries no outer padding — `CollectNowPlacement` decides that, because the
+/// iOS 26 accessory slot provides its own container and the iOS 18 inset does
+/// not.
 struct CollectNowButton: View {
     let logging: LoggingCoordinator
 
@@ -31,8 +35,6 @@ struct CollectNowButton: View {
         // an instant snap from red to green reads as a glitch rather than as
         // progress.
         .animation(.easeInOut(duration: 0.45), value: logging.collection)
-        .padding(.horizontal, 16)
-        .padding(.bottom, 6)
     }
 
     private var isCollecting: Bool { logging.collection == .collecting }

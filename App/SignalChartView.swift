@@ -9,6 +9,15 @@ struct SignalChartView: View {
     let featured: ChartableSignals.Featured
     let points: [(at: Double, value: Double)]
 
+    /// How many seconds back the axis should cover, independent of the data.
+    ///
+    /// Without this the axis spans only the readings themselves, so every range
+    /// button drew an identical chart whenever all the data fell inside the
+    /// shortest one — "24h" and "30d" looked the same and the picker appeared
+    /// broken. Passing the window makes the empty part of a range visible,
+    /// which is itself information: it shows when nothing was recorded.
+    var spanning: Double? = nil
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .firstTextBaseline) {
@@ -53,13 +62,36 @@ struct SignalChartView: View {
                     y: .value(featured.field, point.value)
                 )
                 .interpolationMethod(.monotone)
+
+                // Readings arrive in bursts, so stretches of the line are
+                // interpolation across hours of silence. The dots mark where a
+                // reading actually happened, which the line alone cannot say.
+                PointMark(
+                    x: .value("Time", Date(timeIntervalSince1970: point.at)),
+                    y: .value(featured.field, point.value)
+                )
+                .symbolSize(18)
             }
         }
+        .chartXScale(domain: xDomain)
         .chartYAxisLabel(featured.unit ?? "")
         // Not zero-based: for pressure or altitude a fixed zero flattens the
         // signal into a straight line, and the variation is the whole point.
         .chartYScale(domain: .automatic(includesZero: false))
         .frame(height: 160)
+    }
+
+    /// The window if one was given, otherwise whatever the readings cover.
+    private var xDomain: ClosedRange<Date> {
+        let now = Date()
+        guard let spanning else {
+            let times = points.map { Date(timeIntervalSince1970: $0.at) }
+            guard let first = times.min(), let last = times.max(), first < last else {
+                return now.addingTimeInterval(-3600)...now
+            }
+            return first...last
+        }
+        return now.addingTimeInterval(-spanning)...now
     }
 
     /// A polar histogram of compass headings.
