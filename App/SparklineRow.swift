@@ -22,6 +22,11 @@ struct SparklineRow: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    // Shrink rather than truncate. The value column's width
+                    // varies with its unit — "19.0 hours" is far wider than
+                    // "33.3 GB" — so the space left for this line is not
+                    // constant and a fixed budget cannot fit every row.
+                    .minimumScaleFactor(0.8)
             }
 
             Spacer(minLength: 8)

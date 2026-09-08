@@ -55,9 +55,9 @@ struct ChartWindowTests {
         #expect(ChartWindow.day.start(from: 1_000_000) == 1_000_000 - 86_400)
     }
 
-    @Test("The Dashboard omits the hour")
+    @Test("The Dashboard offers every range, shortest first")
     func dashboardChoices() {
-        #expect(!ChartWindow.dashboardChoices.contains(.hour))
-        #expect(ChartWindow.dashboardChoices.first == .day)
+        #expect(ChartWindow.dashboardChoices == ChartWindow.allCases)
+        #expect(ChartWindow.dashboardChoices.first == .hour)
     }
 }

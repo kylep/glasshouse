@@ -14,6 +14,19 @@ final class LoggingCoordinator {
     private(set) var policies = LoggingPolicies()
     private(set) var lastError: String?
 
+    /// Bumped whenever stored readings change.
+    ///
+    /// `series` and `count` query SQLite directly, so Observation has no
+    /// property to watch and no way to know a row was written — the Dashboard
+    /// only ever redrew because some *other* observed property happened to
+    /// change at the same moment. A reading recorded by the interval timer
+    /// changed nothing on screen. Every read below touches this first, which
+    /// registers the dependency and makes stored data behave like state.
+    private(set) var revision = 0
+
+    /// When readings were last re-read from disk, for the Dashboard to show.
+    private(set) var lastRefreshed: Date?
+
     /// When each signal was last recorded, for scheduling. Not persisted: a
     /// relaunch should take a reading promptly rather than honour an interval
     /// that elapsed while the app was closed.
@@ -108,6 +121,7 @@ final class LoggingCoordinator {
 
         do {
             try log.append(sample)
+            revision += 1
             lastRead[id] = Date().timeIntervalSince1970
             try log.enforce(policies[id].retention, on: id, now: Date().timeIntervalSince1970)
         } catch {
@@ -149,6 +163,20 @@ final class LoggingCoordinator {
         if case .finished = collection { collection = .idle }
     }
 
+    /// Re-reads what is on disk, for pull-to-refresh.
+    ///
+    /// Deliberately does not take new readings — that is what Collect is for,
+    /// and a pull that silently wrote to the log would be a hidden side effect
+    /// on a gesture people use to look, not to change things.
+    func refresh() async {
+        revision += 1
+        lastRefreshed = Date()
+        // A re-read of a few hundred rows finishes faster than the spinner can
+        // appear, which reads as the gesture having been ignored. This holds it
+        // just long enough to be seen.
+        try? await Task.sleep(for: .milliseconds(450))
+    }
+
     /// Reads everything currently due.
     func recordDue() async {
         let plan = LoggingPlan(policies: policies)
@@ -161,18 +189,21 @@ final class LoggingCoordinator {
     // MARK: - Reading back
 
     func series(for sensor: SensorID, field: String, since: Double? = nil) -> [(at: Double, value: Double)] {
+        _ = revision
         guard let capability = CapabilityLedger[sensor],
               let log = logs[capability.sensitivity] else { return [] }
         return (try? log.series(sensor: sensor, field: field, since: since)) ?? []
     }
 
     func count(for sensor: SensorID) -> Int {
+        _ = revision
         guard let capability = CapabilityLedger[sensor],
               let log = logs[capability.sensitivity] else { return 0 }
         return (try? log.count(sensor: sensor)) ?? 0
     }
 
     func numericFields(for sensor: SensorID) -> [String] {
+        _ = revision
         guard let capability = CapabilityLedger[sensor],
               let log = logs[capability.sensitivity] else { return [] }
         return (try? log.numericFields(sensor: sensor)) ?? []

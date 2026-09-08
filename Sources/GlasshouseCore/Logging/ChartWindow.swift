@@ -36,7 +36,7 @@ public enum ChartWindow: String, CaseIterable, Sendable, Identifiable {
 
     public func start(from now: Double) -> Double { now - seconds }
 
-    /// The Dashboard's choices. An hour is omitted: at the sampling rates this
-    /// app records, an hour usually holds one reading, which is not a chart.
-    public static let dashboardChoices: [ChartWindow] = [.day, .week, .month]
+    /// The Dashboard's choices — the same four the detail chart offers, so the
+    /// two never disagree about what ranges exist.
+    public static let dashboardChoices: [ChartWindow] = allCases
 }

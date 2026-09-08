@@ -32,6 +32,14 @@ struct DashboardView: View {
                         }
                         .pickerStyle(.segmented)
                     }
+                    footer: {
+                        // Sits with the picker, at the top, because that is
+                        // where the pull happens. A refresh usually changes
+                        // nothing visible, so without a timestamp here there is
+                        // no way to tell a refresh that found nothing from a
+                        // gesture that never registered.
+                        Text(freshness)
+                    }
                     .listRowBackground(Color.clear)
                     .listRowInsets(.init(top: 0, leading: 16, bottom: 4, trailing: 16))
 
@@ -58,12 +66,18 @@ struct DashboardView: View {
                             }
                         }
                     } footer: {
-                        Text("Tap a signal for its full chart and longer ranges.")
+                        Text("Tap a signal for its full chart.")
                     }
                 }
             }
             .navigationTitle("Dashboard")
+            .refreshable { await logging.refresh() }
         }
+    }
+
+    private var freshness: String {
+        guard let refreshed = logging.lastRefreshed else { return "Pull down to refresh." }
+        return "Updated \(refreshed.formatted(date: .omitted, time: .standard))"
     }
 
     /// Recording is on but there is not yet enough to draw.
