@@ -21,10 +21,26 @@ struct DashboardView: View {
                 } else {
                     ForEach(logging.chartsWithData, id: \.sensor) { featured in
                         Section {
-                            SignalChartView(
-                                featured: featured,
-                                points: logging.series(for: featured.sensor, field: featured.field)
-                            )
+                            // The card is a summary; the range controls live on
+                            // the detail screen. Putting pickers on every card
+                            // would have controls competing with content in a
+                            // scrolling list.
+                            NavigationLink {
+                                ChartDetailView(logging: logging, featured: featured)
+                            } label: {
+                                SignalChartView(
+                                    featured: featured,
+                                    points: logging.series(
+                                        for: featured.sensor,
+                                        field: featured.field,
+                                        // Last 24h on the card. Plotting all of
+                                        // history in a thumbnail compresses
+                                        // recent movement into a flat line.
+                                        since: Date().timeIntervalSince1970 - 86_400
+                                    )
+                                )
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }

@@ -11,13 +11,21 @@ struct SignalChartView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text(CapabilityLedger[featured.sensor]?.displayName ?? featured.sensor.rawValue)
                     .font(.headline)
                 Spacer()
-                Text("\(points.count) readings")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+                if let latest = points.last?.value, featured.kind == .line {
+                    // The current value belongs on the card: a chart answers
+                    // "what has it been doing", not "what is it now".
+                    Text(format(latest))
+                        .font(.callout)
+                        .monospacedDigit()
+                } else {
+                    Text("\(points.count) readings")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
 
             switch featured.kind {
@@ -30,6 +38,11 @@ struct SignalChartView: View {
                 .foregroundStyle(.secondary)
         }
         .padding(.vertical, 6)
+    }
+
+    private func format(_ value: Double) -> String {
+        let rounded = (value * 10).rounded() / 10
+        return featured.unit.map { "\(rounded) \($0)" } ?? "\(rounded)"
     }
 
     private var lineChart: some View {
